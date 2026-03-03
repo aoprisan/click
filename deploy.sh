@@ -104,6 +104,18 @@ echo "Starting ClickCity server on port 9099..."
 EOF
 chmod +x ${RELEASE_DIR}/start.sh
 
+echo "  → Creating seed script..."
+cat > ${RELEASE_DIR}/seed.sh << 'EOF'
+#!/bin/bash
+
+# ClickCity Seed Script — download GeoNames data and populate the database
+
+mkdir -p data
+echo "Seeding database..."
+./clickcity -seed -db ./data/clickcity.db
+EOF
+chmod +x ${RELEASE_DIR}/seed.sh
+
 # Create zip archive
 cd ${BUILD_DIR}
 zip -r ${RELEASE_NAME}.zip ${RELEASE_NAME} > /dev/null 2>&1
@@ -129,9 +141,9 @@ ZIP_FILE="${BUILD_DIR}/${RELEASE_NAME}.zip"
 echo "  → Uploading ${RELEASE_NAME}.zip to ${REMOTE_HOST}:${REMOTE_DIR}..."
 scp -o StrictHostKeyChecking=no "${ZIP_FILE}" "${REMOTE_HOST}:${REMOTE_DIR}"
 
-echo "  → Extracting on remote host..."
+echo "  → Extracting and seeding on remote host..."
 ssh -o StrictHostKeyChecking=no "${REMOTE_HOST}" \
-    "cd ${REMOTE_DIR} && unzip -o ${RELEASE_NAME}.zip && cp -rf ${RELEASE_NAME}/. . && rm -rf ${RELEASE_NAME} ${RELEASE_NAME}.zip"
+    "cd ${REMOTE_DIR} && unzip -o ${RELEASE_NAME}.zip && cp -rf ${RELEASE_NAME}/. . && rm -rf ${RELEASE_NAME} ${RELEASE_NAME}.zip && ./clickcity -seed -db ./data/clickcity.db"
 
 echo -e "${GREEN}✓ Deployed to ${REMOTE_HOST}:${REMOTE_DIR}${NC}"
 echo ""
