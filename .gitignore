@@ -1,0 +1,22 @@
+# Binary
+clickcity
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Seed data
+data/*.csv
+data/*.txt
+
+# OS
+.DS_Store
+
+# Client build
+client/node_modules/
+client/dist/
+
+# IDE
+.vscode/
+.idea/
