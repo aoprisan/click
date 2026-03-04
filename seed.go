@@ -5,7 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,12 +35,12 @@ func seedCities() error {
 		return fmt.Errorf("parse: %w", err)
 	}
 
-	log.Printf("Parsed %d cities (pop >= %d or capital)", len(cities), minPopulation)
+	slog.Info("Parsed cities", "count", len(cities), "minPopulation", minPopulation)
 	return insertCities(cities)
 }
 
 func downloadGeoNames() error {
-	log.Println("Downloading GeoNames cities15000...")
+	slog.Info("Downloading GeoNames cities15000...")
 
 	resp, err := http.Get(geonamesURL)
 	if err != nil {
@@ -63,7 +63,7 @@ func downloadGeoNames() error {
 	}
 	f.Close()
 
-	log.Println("Extracting...")
+	slog.Info("Extracting...")
 	return extractTxtFromZip(zipPath)
 }
 
@@ -95,7 +95,7 @@ func extractTxtFromZip(zipPath string) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Extracted %s", f.Name)
+		slog.Info("Extracted file", "name", f.Name)
 		return nil
 	}
 	return fmt.Errorf("no .txt found in zip")
@@ -254,6 +254,6 @@ func insertCities(cities []City) error {
 		return err
 	}
 
-	log.Printf("Inserted %d cities into database", len(cities))
+	slog.Info("Inserted cities into database", "count", len(cities))
 	return nil
 }

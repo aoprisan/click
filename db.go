@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 
 	_ "modernc.org/sqlite"
 )
@@ -190,7 +190,7 @@ func cityExists(cityID string) bool {
 	var exists int
 	err := db.QueryRow(`SELECT 1 FROM cities WHERE id = ? LIMIT 1`, cityID).Scan(&exists)
 	if err != nil {
-		log.Printf("cityExists check: %v", err)
+		slog.Warn("cityExists check failed", "error", err, "cityId", cityID)
 		return false
 	}
 	return true

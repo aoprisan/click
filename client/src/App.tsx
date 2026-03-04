@@ -1,14 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Globe from './components/Globe'
 import Onboarding from './components/Onboarding'
 import ClickButton from './components/ClickButton'
 import InfoPanel from './components/InfoPanel'
 import Leaderboard from './components/Leaderboard'
 import GlobalCounter from './components/GlobalCounter'
-import { fetchCities, fetchMe } from './api'
+import ConnectionStatus from './components/ConnectionStatus'
+import ErrorBoundary from './components/ErrorBoundary'
+import { fetchCities, fetchLeaderboard, fetchMe } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useClickHandler } from './hooks/useClickHandler'
 import type { City, User, CityUpdate } from './types'
+
+const LEADERBOARD_REFRESH_MS = 3000
 
 export default function App() {
   const [cities, setCities] = useState<City[]>([])
@@ -16,21 +20,40 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [loading, setLoading] = useState(true)
   const [pulsingCityId, setPulsingCityId] = useState<string | null>(null)
-  const citiesRef = useRef(cities)
-  citiesRef.current = cities
+  const [leaderboard, setLeaderboard] = useState<City[]>([])
+  const [onboardingState, setOnboardingState] = useState<'hidden' | 'visible' | 'fading'>('hidden')
+  const leaderboardTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Load cities + check existing session
   useEffect(() => {
-    Promise.all([fetchCities(), fetchMe()])
-      .then(([citiesData, userData]) => {
+    Promise.all([fetchCities(), fetchMe(), fetchLeaderboard(10)])
+      .then(([citiesData, userData, leaderboardData]) => {
         setCities(citiesData)
+        setLeaderboard(leaderboardData)
         if (userData) {
           setUser(userData)
+
           const home = citiesData.find(c => c.id === userData.cityId)
           if (home) setSelectedCity(home)
+        } else {
+          setOnboardingState('visible')
         }
       })
       .finally(() => setLoading(false))
+  }, [])
+
+  // Cleanup leaderboard timer
+  useEffect(() => {
+    return () => clearTimeout(leaderboardTimer.current)
+  }, [])
+
+  // Throttled leaderboard refresh (at most once per LEADERBOARD_REFRESH_MS)
+  const refreshLeaderboard = useCallback(() => {
+    if (leaderboardTimer.current) return
+    leaderboardTimer.current = setTimeout(() => {
+      fetchLeaderboard(10).then(setLeaderboard).catch(() => {})
+      leaderboardTimer.current = undefined
+    }, LEADERBOARD_REFRESH_MS)
   }, [])
 
   // Handle WS city updates
@@ -47,14 +70,16 @@ export default function App() {
         ? { ...prev, totalClicks: update.totalClicks, contributorCount: update.contributorCount }
         : prev
     )
-    // Pulse effect
+    // Pulse effect via rings
     setPulsingCityId(update.cityId)
-    setTimeout(() => setPulsingCityId(null), 300)
-  }, [])
+    setTimeout(() => setPulsingCityId(null), 1500)
+    // Throttled leaderboard refresh
+    refreshLeaderboard()
+  }, [refreshLeaderboard])
 
   const ws = useWebSocket(user, onCityUpdate)
 
-  const { handleClick, personalClicks } = useClickHandler(ws, user, (update) => {
+  const { handleClick, personalClicks, rateLimited } = useClickHandler(ws, user, () => {
     // Optimistic update for own clicks
     if (user) {
       setCities(prev =>
@@ -67,7 +92,7 @@ export default function App() {
     }
   })
 
-  const handleCityClick = useCallback((city: City) => {
+  const handleCitySelect = useCallback((city: City) => {
     setSelectedCity(city)
   }, [])
 
@@ -75,11 +100,19 @@ export default function App() {
     setUser(newUser)
     const home = cities.find(c => c.id === newUser.cityId)
     if (home) setSelectedCity(home)
+    // Fade out onboarding
+    setOnboardingState('fading')
+    setTimeout(() => setOnboardingState('hidden'), 400)
   }, [cities])
 
   const userCity = user ? cities.find(c => c.id === user.cityId) : null
-  const totalGlobalClicks = cities.reduce((sum, c) => sum + c.totalClicks, 0)
-  const leaderboard = [...cities].filter(c => c.totalClicks > 0).sort((a, b) => b.totalClicks - a.totalClicks).slice(0, 10)
+  const totalGlobalClicks = useMemo(
+    () => cities.reduce((sum, c) => sum + c.totalClicks, 0),
+    [cities],
+  )
+  const selectedCityRank = selectedCity
+    ? leaderboard.findIndex(c => c.id === selectedCity.id) + 1
+    : 0
 
   if (loading) {
     return (
@@ -91,13 +124,15 @@ export default function App() {
 
   return (
     <>
-      <Globe
-        cities={cities}
-        userCityId={user?.cityId ?? null}
-        onCityClick={handleCityClick}
-        selectedCityId={selectedCity?.id ?? null}
-        pulsingCityId={pulsingCityId}
-      />
+      <ErrorBoundary>
+        <Globe
+          cities={cities}
+          userCityId={user?.cityId ?? null}
+          onCityClick={handleCitySelect}
+          selectedCityId={selectedCity?.id ?? null}
+          pulsingCityId={pulsingCityId}
+        />
+      </ErrorBoundary>
 
       <div className="logo">CLICKCITY</div>
 
@@ -110,6 +145,7 @@ export default function App() {
           city={selectedCity}
           isHome={selectedCity.id === user.cityId}
           userClicks={selectedCity.id === user.cityId ? (user.totalClicks + personalClicks) : undefined}
+          rank={selectedCityRank}
         />
       )}
 
@@ -118,11 +154,18 @@ export default function App() {
           onClick={handleClick}
           personalClicks={user.totalClicks + personalClicks}
           cityName={userCity?.name}
+          rateLimited={rateLimited}
         />
       )}
 
-      {!user && (
-        <Onboarding cities={cities} onRegistered={handleRegistered} />
+      {user && <ConnectionStatus state={ws.connectionState} />}
+
+      {onboardingState !== 'hidden' && (
+        <Onboarding
+          cities={cities}
+          onRegistered={handleRegistered}
+          fading={onboardingState === 'fading'}
+        />
       )}
     </>
   )

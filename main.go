@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,23 +17,27 @@ import (
 
 func main() {
 	seed := flag.Bool("seed", false, "Download and seed city data, then exit")
-	addr := flag.String("addr", ":8080", "Listen address")
-	dbPath := flag.String("db", "clickcity.db", "SQLite database path")
+	addr := flag.String("addr", envOr("ADDR", ":8080"), "Listen address")
+	dbPath := flag.String("db", envOr("DB_PATH", "clickcity.db"), "SQLite database path")
+	wsOrigins := flag.String("ws-origins", envOr("WS_ORIGINS", "*"), "Comma-separated WebSocket origin patterns")
 	flag.Parse()
 
 	if err := initDB(*dbPath); err != nil {
-		log.Fatalf("Failed to init DB: %v", err)
+		slog.Error("Failed to init DB", "error", err)
+		os.Exit(1)
 	}
 
 	if *seed {
 		if err := seedCities(); err != nil {
-			log.Fatalf("Seed failed: %v", err)
+			slog.Error("Seed failed", "error", err)
+			os.Exit(1)
 		}
-		log.Println("Seeding complete.")
+		slog.Info("Seeding complete")
 		return
 	}
 
-	wsHub := newHub()
+	origins := strings.Split(*wsOrigins, ",")
+	wsHub := newHub(origins)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -48,8 +58,36 @@ func main() {
 	// Static files (embedded in production, not-found in dev)
 	r.Handle("/*", staticHandler())
 
-	log.Printf("Listening on %s", *addr)
-	if err := http.ListenAndServe(*addr, r); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{Addr: *addr, Handler: r}
+
+	// Graceful shutdown on SIGINT/SIGTERM
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		slog.Info("Listening", "addr", *addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Listen failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-done
+	slog.Info("Shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("Shutdown error", "error", err)
 	}
+	db.Close()
+	slog.Info("Server stopped")
+}
+
+// envOr returns the value of the environment variable or the fallback.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

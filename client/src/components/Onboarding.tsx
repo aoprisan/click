@@ -5,9 +5,10 @@ import type { City, User } from '../types'
 interface OnboardingProps {
   cities: City[]
   onRegistered: (user: User) => void
+  fading?: boolean
 }
 
-export default function Onboarding({ cities, onRegistered }: OnboardingProps) {
+export default function Onboarding({ cities, onRegistered, fading }: OnboardingProps) {
   const [search, setSearch] = useState('')
   const [selectedCityId, setSelectedCityId] = useState('')
   const [name, setName] = useState('')
@@ -44,6 +45,8 @@ export default function Onboarding({ cities, onRegistered }: OnboardingProps) {
       position: 'absolute', inset: 0, zIndex: 100,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+      opacity: fading ? 0 : 1,
+      transition: 'opacity 0.4s ease-out',
     }}>
       <div style={{
         background: 'var(--bg-panel)', border: '1px solid var(--border)',
