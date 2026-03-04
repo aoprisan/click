@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { City, Contributor } from '../types'
 import { fetchCityDetail } from '../api'
 import BuildingViz from './BuildingViz'
+
+const CONTRIBUTOR_REFRESH_MS = 5000
 
 interface InfoPanelProps {
   city: City
@@ -12,13 +14,40 @@ interface InfoPanelProps {
 
 export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelProps) {
   const [contributors, setContributors] = useState<Contributor[]>([])
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const lastCityId = useRef(city.id)
 
+  // Fetch contributors on city change, debounce on click updates
   useEffect(() => {
     let cancelled = false
-    fetchCityDetail(city.id).then(detail => {
-      if (!cancelled) setContributors(detail.topContributors)
-    }).catch(() => {})
-    return () => { cancelled = true }
+    const cityChanged = city.id !== lastCityId.current
+    lastCityId.current = city.id
+
+    const doFetch = () => {
+      fetchCityDetail(city.id).then(detail => {
+        if (!cancelled) setContributors(detail.topContributors)
+      }).catch(() => {})
+    }
+
+    if (cityChanged) {
+      // Immediate fetch when switching cities
+      clearTimeout(refreshTimer.current)
+      doFetch()
+    } else {
+      // Debounced fetch on click updates
+      if (!refreshTimer.current) {
+        refreshTimer.current = setTimeout(() => {
+          refreshTimer.current = undefined
+          doFetch()
+        }, CONTRIBUTOR_REFRESH_MS)
+      }
+    }
+
+    return () => {
+      cancelled = true
+      clearTimeout(refreshTimer.current)
+      refreshTimer.current = undefined
+    }
   }, [city.id, city.totalClicks])
 
   return (

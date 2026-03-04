@@ -1,16 +1,17 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import ReconnectingWebSocket from 'reconnecting-websocket'
-import type { User, CityUpdate, CityClick, WSMessage } from '../types'
+import type { User, CityUpdate, WSMessage } from '../types'
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export function useWebSocket(
   user: User | null,
   onCityUpdate: (update: CityUpdate) => void,
-  onCityClick?: (click: CityClick) => void,
 ) {
   const wsRef = useRef<ReconnectingWebSocket | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
+  const onCityUpdateRef = useRef(onCityUpdate)
+  onCityUpdateRef.current = onCityUpdate
 
   useEffect(() => {
     if (!user) return
@@ -29,9 +30,7 @@ export function useWebSocket(
       try {
         const msg: WSMessage = JSON.parse(event.data)
         if (msg.type === 'city_update' && msg.data) {
-          onCityUpdate(msg.data as CityUpdate)
-        } else if (msg.type === 'city_click' && msg.data && onCityClick) {
-          onCityClick(msg.data as CityClick)
+          onCityUpdateRef.current(msg.data as CityUpdate)
         }
       } catch {
         // ignore malformed messages
@@ -43,7 +42,7 @@ export function useWebSocket(
       wsRef.current = null
       setConnectionState('disconnected')
     }
-  }, [user, onCityUpdate, onCityClick])
+  }, [user])
 
   const send = useCallback((msg: object) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

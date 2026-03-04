@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { User, CityUpdate } from '../types'
 
 const RATE_LIMIT = 100
@@ -14,6 +14,7 @@ export function useClickHandler(
 
   const [rateLimited, setRateLimited] = useState(false)
   const rateLimitTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(rateLimitTimer.current), [])
 
   const handleClick = useCallback(() => {
     if (!user) return

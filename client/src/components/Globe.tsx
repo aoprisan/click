@@ -93,13 +93,15 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     </div>`
   }, [])
 
-  // Pulse ring for cities receiving clicks
+  // Pulse ring for cities receiving clicks (use ref to avoid recomputing on every cities change)
+  const citiesRef = useRef(cities)
+  citiesRef.current = cities
   const ringsData = useMemo(() => {
     if (!pulsingCityId) return []
-    const city = cities.find(c => c.id === pulsingCityId)
+    const city = citiesRef.current.find(c => c.id === pulsingCityId)
     if (!city) return []
     return [{ lat: city.lat, lng: city.lng }]
-  }, [pulsingCityId, cities])
+  }, [pulsingCityId])
 
   return (
     <GlobeGL
