@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -47,7 +47,7 @@ func (h *hub) removeClient(c *client) {
 func (h *hub) broadcast(msg WSOutgoing) {
 	data, err := json.Marshal(msg)
 	if err != nil {
-		log.Printf("broadcast marshal: %v", err)
+		slog.Error("broadcast marshal failed", "error", err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		OriginPatterns: h.originPatterns,
 	})
 	if err != nil {
-		log.Printf("ws accept: %v", err)
+		slog.Warn("ws accept failed", "error", err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		update, err := recordClick(c.userID, c.cityID)
 		if err != nil {
-			log.Printf("recordClick: %v", err)
+			slog.Error("recordClick failed", "error", err, "user", c.userID, "city", c.cityID)
 			continue
 		}
 

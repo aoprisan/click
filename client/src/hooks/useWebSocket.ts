@@ -1,12 +1,15 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import type { User, CityUpdate, WSMessage } from '../types'
+
+export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export function useWebSocket(
   user: User | null,
   onCityUpdate: (update: CityUpdate) => void,
 ) {
   const wsRef = useRef<ReconnectingWebSocket | null>(null)
+  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
 
   useEffect(() => {
     if (!user) return
@@ -15,6 +18,11 @@ export function useWebSocket(
     const url = `${protocol}//${window.location.host}/ws`
     const ws = new ReconnectingWebSocket(url)
     wsRef.current = ws
+
+    setConnectionState('connecting')
+
+    ws.onopen = () => setConnectionState('connected')
+    ws.onclose = () => setConnectionState('disconnected')
 
     ws.onmessage = (event) => {
       try {
@@ -30,6 +38,7 @@ export function useWebSocket(
     return () => {
       ws.close()
       wsRef.current = null
+      setConnectionState('disconnected')
     }
   }, [user, onCityUpdate])
 
@@ -39,5 +48,5 @@ export function useWebSocket(
     }
   }, [])
 
-  return { send }
+  return { send, connectionState }
 }

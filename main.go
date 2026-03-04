@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,20 +17,22 @@ import (
 
 func main() {
 	seed := flag.Bool("seed", false, "Download and seed city data, then exit")
-	addr := flag.String("addr", ":8080", "Listen address")
-	dbPath := flag.String("db", "clickcity.db", "SQLite database path")
-	wsOrigins := flag.String("ws-origins", "*", "Comma-separated WebSocket origin patterns")
+	addr := flag.String("addr", envOr("ADDR", ":8080"), "Listen address")
+	dbPath := flag.String("db", envOr("DB_PATH", "clickcity.db"), "SQLite database path")
+	wsOrigins := flag.String("ws-origins", envOr("WS_ORIGINS", "*"), "Comma-separated WebSocket origin patterns")
 	flag.Parse()
 
 	if err := initDB(*dbPath); err != nil {
-		log.Fatalf("Failed to init DB: %v", err)
+		slog.Error("Failed to init DB", "error", err)
+		os.Exit(1)
 	}
 
 	if *seed {
 		if err := seedCities(); err != nil {
-			log.Fatalf("Seed failed: %v", err)
+			slog.Error("Seed failed", "error", err)
+			os.Exit(1)
 		}
-		log.Println("Seeding complete.")
+		slog.Info("Seeding complete")
 		return
 	}
 
@@ -63,20 +65,29 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Listening on %s", *addr)
+		slog.Info("Listening", "addr", *addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			slog.Error("Listen failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-done
-	log.Println("Shutting down...")
+	slog.Info("Shutting down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+		slog.Error("Shutdown error", "error", err)
 	}
 	db.Close()
-	log.Println("Server stopped")
+	slog.Info("Server stopped")
+}
+
+// envOr returns the value of the environment variable or the fallback.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

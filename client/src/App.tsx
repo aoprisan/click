@@ -5,6 +5,8 @@ import ClickButton from './components/ClickButton'
 import InfoPanel from './components/InfoPanel'
 import Leaderboard from './components/Leaderboard'
 import GlobalCounter from './components/GlobalCounter'
+import ConnectionStatus from './components/ConnectionStatus'
+import ErrorBoundary from './components/ErrorBoundary'
 import { fetchCities, fetchMe } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useClickHandler } from './hooks/useClickHandler'
@@ -93,13 +95,15 @@ export default function App() {
 
   return (
     <>
-      <Globe
-        cities={cities}
-        userCityId={user?.cityId ?? null}
-        onCityClick={handleCityClick}
-        selectedCityId={selectedCity?.id ?? null}
-        pulsingCityId={pulsingCityId}
-      />
+      <ErrorBoundary>
+        <Globe
+          cities={cities}
+          userCityId={user?.cityId ?? null}
+          onCityClick={handleCityClick}
+          selectedCityId={selectedCity?.id ?? null}
+          pulsingCityId={pulsingCityId}
+        />
+      </ErrorBoundary>
 
       <div className="logo">CLICKCITY</div>
 
@@ -123,6 +127,8 @@ export default function App() {
           cityName={userCity?.name}
         />
       )}
+
+      {user && <ConnectionStatus state={ws.connectionState} />}
 
       {!user && (
         <Onboarding cities={cities} onRegistered={handleRegistered} />

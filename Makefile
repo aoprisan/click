@@ -1,4 +1,4 @@
-.PHONY: dev-server dev-client seed build clean
+.PHONY: dev-server dev-client seed build clean test
 
 dev-server:
 	go run -tags dev . -addr :8080
@@ -12,6 +12,10 @@ seed:
 build:
 	cd client && npm run build
 	go build -o clickcity .
+
+test:
+	go test ./...
+	cd client && npx vitest run
 
 clean:
 	rm -f clickcity clickcity.db
