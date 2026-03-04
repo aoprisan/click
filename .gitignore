@@ -15,6 +15,7 @@ data/*.txt
 .DS_Store
 
 # Client build
+node_modules/
 client/node_modules/
 client/dist/
 
