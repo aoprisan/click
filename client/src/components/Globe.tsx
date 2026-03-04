@@ -114,6 +114,7 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       pointRadius={pointRadius}
       pointLabel={pointLabel}
       onPointClick={handlePointClick}
+      pointsTransitionDuration={0}
       // Atmosphere
       atmosphereColor="#3a228a"
       atmosphereAltitude={0.2}
