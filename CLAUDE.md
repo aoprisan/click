@@ -8,7 +8,7 @@ ClickCity — a multiplayer idle clicker game with a 3D globe. Players pick a ci
 
 ## Stack
 
-- **Backend**: Go 1.25 with Chi router, SQLite (modernc.org/sqlite), WebSocket (coder/websocket)
+- **Backend**: Go 1.24 with Chi router, SQLite (modernc.org/sqlite), WebSocket (coder/websocket)
 - **Frontend**: React 19 + TypeScript, Vite, Three.js globe (react-globe.gl)
 - **Auth**: Cookie-based (UUID in `user_id` cookie, no passwords)
 
@@ -19,22 +19,29 @@ make seed           # Download GeoNames data + populate SQLite (required first r
 make dev-server     # Go backend on :8080 (with -tags dev for filesystem serving)
 make dev-client     # Vite dev server on :5173 (proxies /api and /ws to :8080)
 make build          # Production build: client dist + Go binary "clickcity"
+make test           # Run all tests: go test ./... + cd client && npx vitest run
 make clean          # Remove build artifacts
 ```
 
 Run both `make dev-server` and `make dev-client` for local development.
 
+**Prerequisites**: `make dev-server` requires [Air](https://github.com/air-verse/air) for hot-reload (`go install github.com/air-verse/air@latest`). Run `cd client && npm install` before first `make dev-client`.
+
+**Running individual tests**:
+- Single Go test: `go test -run TestName ./...`
+- Single frontend test: `cd client && npx vitest run src/components/Globe.test.tsx`
+
 ## Architecture
 
 **Data flow**: User click → optimistic client update → WebSocket `{"type":"click"}` → server rate-limits (100/60s token bucket) → SQLite transaction (increment user + city) → broadcast `city_update` to all clients.
 
-**Backend** (`*.go` in root): `main.go` sets up Chi routes + middleware. `handlers.go` has REST endpoints. `ws.go` implements a hub-based broadcast pattern (Hub manages Client connections). `db.go` handles all SQLite queries with WAL mode. `ratelimit.go` does per-user token bucket limiting. `seed.go` parses GeoNames data.
+**Backend** (`*.go` in root): `main.go` sets up Chi routes + middleware. `handlers.go` has REST endpoints. `ws.go` implements a hub-based broadcast pattern (Hub manages Client connections). `db.go` handles all SQLite queries with WAL mode. `models.go` defines shared structs (City, User, RegisterRequest, WebSocket message types). `ratelimit.go` does per-user token bucket limiting. `seed.go` parses GeoNames data.
 
 **Frontend** (`client/src/`): `App.tsx` owns top-level state and WebSocket lifecycle. `hooks/useWebSocket.ts` wraps ReconnectingWebSocket. `hooks/useClickHandler.ts` handles optimistic updates + client-side rate tracking. `components/Globe.tsx` renders the Three.js globe with city markers scaled by log of click count.
 
 **REST API**: `GET /api/cities`, `GET /api/cities/:id`, `GET /api/leaderboard?limit=N`, `POST /api/register`, `GET /api/me`
 
-**WebSocket**: `GET /ws` (requires auth cookie). Client sends `click`, server broadcasts `city_update`.
+**WebSocket**: `GET /ws` (requires auth cookie). Client sends `click`, server broadcasts `city_update` to all clients and `city_click {cityId, userName}` to same-city clients.
 
 ## Build Modes
 
