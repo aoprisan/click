@@ -79,7 +79,9 @@ export default function App() {
 
   const userCity = user ? cities.find(c => c.id === user.cityId) : null
   const totalGlobalClicks = cities.reduce((sum, c) => sum + c.totalClicks, 0)
-  const leaderboard = [...cities].filter(c => c.totalClicks > 0).sort((a, b) => b.totalClicks - a.totalClicks).slice(0, 10)
+  const sortedByClicks = [...cities].filter(c => c.totalClicks > 0).sort((a, b) => b.totalClicks - a.totalClicks)
+  const leaderboard = sortedByClicks.slice(0, 10)
+  const selectedCityRank = selectedCity ? sortedByClicks.findIndex(c => c.id === selectedCity.id) + 1 : 0
 
   if (loading) {
     return (
@@ -110,6 +112,7 @@ export default function App() {
           city={selectedCity}
           isHome={selectedCity.id === user.cityId}
           userClicks={selectedCity.id === user.cityId ? (user.totalClicks + personalClicks) : undefined}
+          rank={selectedCityRank}
         />
       )}
 

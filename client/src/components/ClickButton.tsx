@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react'
 
+interface Particle {
+  id: number
+  dx: number
+  dy: number
+}
+
 interface ClickButtonProps {
   onClick: () => void
   personalClicks: number
@@ -9,6 +15,7 @@ interface ClickButtonProps {
 export default function ClickButton({ onClick, personalClicks, cityName }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
+  const [particles, setParticles] = useState<Particle[]>([])
 
   const handleClick = useCallback(() => {
     setPressing(true)
@@ -18,6 +25,15 @@ export default function ClickButton({ onClick, personalClicks, cityName }: Click
     const id = Date.now()
     setRipples(prev => [...prev, id])
     setTimeout(() => setRipples(prev => prev.filter(r => r !== id)), 600)
+
+    // Add particles
+    const dist = 50 + Math.random() * 20
+    const newParticles: Particle[] = Array.from({ length: 10 }, (_, i) => {
+      const angle = ((360 / 10) * i + Math.random() * 20 - 10) * (Math.PI / 180)
+      return { id: id + i, dx: Math.cos(angle) * dist, dy: Math.sin(angle) * dist }
+    })
+    setParticles(prev => [...prev, ...newParticles])
+    setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.some(np => np.id === p.id))), 500)
 
     onClick()
   }, [onClick])
@@ -34,6 +50,18 @@ export default function ClickButton({ onClick, personalClicks, cityName }: Click
       )}
 
       <div style={{ position: 'relative' }}>
+        {/* Particle burst */}
+        {particles.map(p => (
+          <div key={p.id} style={{
+            position: 'absolute', left: 57, top: 57, width: 6, height: 6,
+            borderRadius: '50%', background: 'var(--gold)',
+            pointerEvents: 'none', zIndex: 20,
+            opacity: 0,
+            animation: 'particleFade 0.5s ease-out forwards',
+            '--dx': `${p.dx}px`, '--dy': `${p.dy}px`,
+          } as React.CSSProperties} />
+        ))}
+
         {/* Ripple effects */}
         {ripples.map(id => (
           <div key={id} style={{
@@ -70,6 +98,10 @@ export default function ClickButton({ onClick, personalClicks, cityName }: Click
         @keyframes ripple {
           0% { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes particleFade {
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
         }
       `}</style>
     </div>

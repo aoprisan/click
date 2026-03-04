@@ -5,9 +5,10 @@ interface InfoPanelProps {
   city: City
   isHome: boolean
   userClicks?: number
+  rank?: number
 }
 
-export default function InfoPanel({ city, isHome, userClicks }: InfoPanelProps) {
+export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelProps) {
   return (
     <div className="panel" style={{
       bottom: 32, left: 24, width: 280,
@@ -28,6 +29,15 @@ export default function InfoPanel({ city, isHome, userClicks }: InfoPanelProps) 
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rank !== undefined && rank > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Rank</span>
+            <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
+              #{rank}
+            </span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Total clicks</span>
           <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>

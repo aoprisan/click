@@ -18,15 +18,17 @@ type client struct {
 }
 
 type hub struct {
-	mu      sync.Mutex
-	clients map[*client]struct{}
-	limiter *rateLimiter
+	mu             sync.Mutex
+	clients        map[*client]struct{}
+	limiter        *rateLimiter
+	originPatterns []string
 }
 
-func newHub() *hub {
+func newHub(originPatterns []string) *hub {
 	return &hub{
-		clients: make(map[*client]struct{}),
-		limiter: newRateLimiter(),
+		clients:        make(map[*client]struct{}),
+		limiter:        newRateLimiter(),
+		originPatterns: originPatterns,
 	}
 }
 
@@ -81,7 +83,7 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"*"},
+		OriginPatterns: h.originPatterns,
 	})
 	if err != nil {
 		log.Printf("ws accept: %v", err)
