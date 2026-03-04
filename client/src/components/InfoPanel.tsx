@@ -51,7 +51,7 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
   }, [city.id, city.totalClicks])
 
   return (
-    <div className="panel" style={{
+    <div className="panel info-panel" style={{
       bottom: 32, left: 24, width: 280,
     }}>
       <div style={{ marginBottom: 12 }}>

@@ -40,7 +40,7 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
   }, [onClick])
 
   return (
-    <div style={{
+    <div className="click-button-area" style={{
       position: 'absolute', bottom: 32, right: 32, zIndex: 10,
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
     }}>

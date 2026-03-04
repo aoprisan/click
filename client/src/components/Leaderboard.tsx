@@ -9,7 +9,7 @@ export default function Leaderboard({ cities }: LeaderboardProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="panel" style={{
+    <div className="panel leaderboard-panel" style={{
       top: 20, right: 24, width: 260,
     }}>
       <div

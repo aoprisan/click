@@ -66,3 +66,85 @@ html, body, #root {
   background: var(--border);
   border-radius: 2px;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .logo {
+    top: 10px;
+    left: 12px;
+    font-size: 16px;
+  }
+
+  .global-counter {
+    top: 10px !important;
+  }
+
+  .leaderboard-panel {
+    width: 200px !important;
+    right: 12px !important;
+    top: 10px !important;
+    padding: 10px !important;
+    font-size: 12px;
+  }
+
+  .info-panel {
+    width: 220px !important;
+    left: 12px !important;
+    bottom: 20px !important;
+    padding: 12px !important;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .click-button-area {
+    bottom: 20px !important;
+    right: 16px !important;
+  }
+
+  .click-button-area button {
+    width: 90px !important;
+    height: 90px !important;
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    top: 8px;
+    left: 10px;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .global-counter {
+    top: 8px !important;
+  }
+
+  .global-counter .mono {
+    font-size: 16px !important;
+  }
+
+  .leaderboard-panel {
+    width: 170px !important;
+    right: 8px !important;
+    padding: 8px !important;
+  }
+
+  .info-panel {
+    width: calc(100vw - 120px) !important;
+    left: 8px !important;
+    bottom: 16px !important;
+    max-height: 40vh;
+  }
+
+  .click-button-area {
+    bottom: 16px !important;
+    right: 10px !important;
+  }
+
+  .click-button-area button {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 14px !important;
+  }
+}

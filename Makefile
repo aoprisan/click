@@ -1,7 +1,7 @@
 .PHONY: dev-server dev-client seed build clean test
 
 dev-server:
-	go run -tags dev . -addr :8080
+	./scripts/dev-server.sh
 
 dev-client:
 	cd client && npm run dev

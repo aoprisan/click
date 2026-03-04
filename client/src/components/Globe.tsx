@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react'
 import GlobeGL from 'react-globe.gl'
+import * as THREE from 'three'
 import type { City } from '../types'
 import * as topojson from 'topojson-client'
 
@@ -40,6 +41,67 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     }
   }, [])
 
+  // Ocean animated gradient + landmass glow
+  useEffect(() => {
+    if (!globeRef.current) return
+    const globe = globeRef.current
+
+    let frameId: number
+    let globeMat: THREE.MeshPhongMaterial | null = null
+
+    const animate = () => {
+      const t = Date.now() * 0.001
+      const scene = globe.scene()
+
+      // Find globe material on first frame (it's the large sphere mesh)
+      if (!globeMat && scene) {
+        scene.traverse((obj: THREE.Object3D) => {
+          if (globeMat) return
+          if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshPhongMaterial && obj.geometry instanceof THREE.SphereGeometry) {
+            globeMat = obj.material
+            globeMat.emissive = new THREE.Color(0x061428)
+            globeMat.emissiveIntensity = 0.4
+          }
+        })
+      }
+
+      if (globeMat) {
+        const intensity = 0.3 + 0.15 * Math.sin(t * 0.4)
+        globeMat.emissiveIntensity = intensity
+        const hue = 0.58 + 0.03 * Math.sin(t * 0.25)
+        globeMat.emissive.setHSL(hue, 0.6, 0.12)
+      }
+
+      // Landmass glow: find polygon meshes and set emissive
+      if (scene && !(scene as any).__glowApplied) {
+        scene.traverse((obj: THREE.Object3D) => {
+          if (obj instanceof THREE.Mesh && obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+            for (const mat of mats) {
+              if (mat instanceof THREE.MeshLambertMaterial && mat.color) {
+                const c = mat.color
+                if (c.r < 0.2 && c.g < 0.2 && c.b > 0.15) {
+                  mat.emissive = new THREE.Color(0x1a1a40)
+                  mat.emissiveIntensity = 0.5
+                }
+              }
+            }
+          }
+        })
+        ;(scene as any).__glowApplied = true
+      }
+
+      frameId = requestAnimationFrame(animate)
+    }
+
+    const timer = setTimeout(() => { frameId = requestAnimationFrame(animate) }, 1000)
+
+    return () => {
+      clearTimeout(timer)
+      cancelAnimationFrame(frameId)
+    }
+  }, [])
+
   // Fly to user city on mount
   useEffect(() => {
     if (!globeRef.current || !userCityId) return
@@ -59,8 +121,8 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
 
   const pointAltitude = useCallback((d: any) => {
     const city = d as City
-    if (city.totalClicks === 0) return 0.005
-    return 0.005 + 0.3 * Math.log10(city.totalClicks) / Math.log10(Math.max(10, maxClicks))
+    if (city.totalClicks === 0) return 0.001
+    return 0.001 + 0.01 * Math.log10(city.totalClicks) / Math.log10(Math.max(10, maxClicks))
   }, [maxClicks])
 
   const pointColor = useCallback((d: any) => {
@@ -72,10 +134,10 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
 
   const pointRadius = useCallback((d: any) => {
     const city = d as City
-    if (city.id === userCityId) return 0.35
-    if (city.totalClicks > 0) return 0.2 + Math.min(0.3, city.totalClicks / 10000)
+    if (city.id === userCityId) return 0.4 + Math.min(0.4, 0.4 * Math.log10(Math.max(1, cities.find(c => c.id === userCityId)?.totalClicks ?? 1)) / Math.log10(Math.max(10, maxClicks)))
+    if (city.totalClicks > 0) return 0.15 + Math.min(0.35, 0.35 * Math.log10(city.totalClicks) / Math.log10(Math.max(10, maxClicks)))
     return 0.12
-  }, [userCityId])
+  }, [userCityId, maxClicks])
 
   const handlePointClick = useCallback((point: any) => {
     const city = point as City
@@ -110,9 +172,9 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
       // Country borders
       polygonsData={polygonsRef.current}
-      polygonCapColor={() => 'rgba(30, 30, 50, 0.6)'}
-      polygonSideColor={() => 'rgba(100, 100, 140, 0.1)'}
-      polygonStrokeColor={() => 'rgba(200, 200, 255, 0.15)'}
+      polygonCapColor={() => 'rgba(35, 35, 65, 0.65)'}
+      polygonSideColor={() => 'rgba(110, 110, 160, 0.15)'}
+      polygonStrokeColor={() => 'rgba(200, 200, 255, 0.2)'}
       polygonAltitude={0.005}
       // City points
       pointsData={cities}

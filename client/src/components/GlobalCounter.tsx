@@ -4,7 +4,7 @@ interface GlobalCounterProps {
 
 export default function GlobalCounter({ total }: GlobalCounterProps) {
   return (
-    <div style={{
+    <div className="global-counter" style={{
       position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
       zIndex: 10, textAlign: 'center',
     }}>

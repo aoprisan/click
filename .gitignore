@@ -19,6 +19,9 @@ node_modules/
 client/node_modules/
 client/dist/
 
+# Air (Go hot-reload)
+tmp/
+
 # IDE
 .vscode/
 .idea/

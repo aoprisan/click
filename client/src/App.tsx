@@ -6,11 +6,12 @@ import InfoPanel from './components/InfoPanel'
 import Leaderboard from './components/Leaderboard'
 import GlobalCounter from './components/GlobalCounter'
 import ConnectionStatus from './components/ConnectionStatus'
+import CityClickToast, { useCityClickToasts } from './components/CityClickToast'
 import ErrorBoundary from './components/ErrorBoundary'
 import { fetchCities, fetchLeaderboard, fetchMe } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useClickHandler } from './hooks/useClickHandler'
-import type { City, User, CityUpdate } from './types'
+import type { City, User, CityUpdate, CityClick } from './types'
 
 const LEADERBOARD_REFRESH_MS = 3000
 
@@ -23,6 +24,7 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState<City[]>([])
   const [onboardingState, setOnboardingState] = useState<'hidden' | 'visible' | 'fading'>('hidden')
   const leaderboardTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const { toasts, addToast } = useCityClickToasts()
 
   // Load cities + check existing session
   useEffect(() => {
@@ -77,7 +79,14 @@ export default function App() {
     refreshLeaderboard()
   }, [refreshLeaderboard])
 
-  const ws = useWebSocket(user, onCityUpdate)
+  const onCityClick = useCallback((click: CityClick) => {
+    // Only show toasts for clicks in the user's own city
+    if (user && click.cityId === user.cityId) {
+      addToast(click)
+    }
+  }, [user, addToast])
+
+  const ws = useWebSocket(user, onCityUpdate, onCityClick)
 
   const { handleClick, personalClicks, rateLimited } = useClickHandler(ws, user, () => {
     // Optimistic update for own clicks
@@ -137,6 +146,8 @@ export default function App() {
       <div className="logo">CLICKCITY</div>
 
       <GlobalCounter total={totalGlobalClicks} />
+
+      <CityClickToast toasts={toasts} />
 
       <Leaderboard cities={leaderboard} />
 
