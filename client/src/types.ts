@@ -31,7 +31,12 @@ export interface CityUpdate {
   contributorCount: number
 }
 
+export interface CityClick {
+  cityId: string
+  userName: string
+}
+
 export interface WSMessage {
   type: string
-  data?: CityUpdate
+  data?: CityUpdate | CityClick
 }

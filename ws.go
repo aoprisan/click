@@ -12,9 +12,10 @@ import (
 )
 
 type client struct {
-	conn   *websocket.Conn
-	userID string
-	cityID string
+	conn     *websocket.Conn
+	userID   string
+	cityID   string
+	userName string
 }
 
 type hub struct {
@@ -45,6 +46,17 @@ func (h *hub) removeClient(c *client) {
 }
 
 func (h *hub) broadcast(msg WSOutgoing) {
+	h.sendToClients(msg, nil)
+}
+
+// broadcastToCity sends a message only to clients in the given city, excluding the sender.
+func (h *hub) broadcastToCity(msg WSOutgoing, cityID string, exclude *client) {
+	h.sendToClients(msg, func(c *client) bool {
+		return c.cityID == cityID && c != exclude
+	})
+}
+
+func (h *hub) sendToClients(msg WSOutgoing, filter func(*client) bool) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		slog.Error("broadcast marshal failed", "error", err)
@@ -54,7 +66,9 @@ func (h *hub) broadcast(msg WSOutgoing) {
 	h.mu.Lock()
 	clients := make([]*client, 0, len(h.clients))
 	for c := range h.clients {
-		clients = append(clients, c)
+		if filter == nil || filter(c) {
+			clients = append(clients, c)
+		}
 	}
 	h.mu.Unlock()
 
@@ -91,9 +105,10 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := &client{
-		conn:   conn,
-		userID: user.ID,
-		cityID: user.CityID,
+		conn:     conn,
+		userID:   user.ID,
+		cityID:   user.CityID,
+		userName: user.Name,
 	}
 	h.addClient(c)
 	defer func() {
@@ -130,5 +145,11 @@ func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			Type: "city_update",
 			Data: update,
 		})
+
+		// Notify same-city players about the click (excluding the sender)
+		h.broadcastToCity(WSOutgoing{
+			Type: "city_click",
+			Data: CityClick{CityID: c.cityID, UserName: c.userName},
+		}, c.cityID, c)
 	}
 }

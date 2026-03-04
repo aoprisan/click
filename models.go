@@ -68,3 +68,9 @@ type CityUpdate struct {
 	TotalClicks      int64  `json:"totalClicks"`
 	ContributorCount int    `json:"contributorCount"`
 }
+
+// CityClick is the data payload for city_click messages (same-city room broadcast).
+type CityClick struct {
+	CityID   string `json:"cityId"`
+	UserName string `json:"userName"`
+}

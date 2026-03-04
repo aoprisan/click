@@ -10,8 +10,8 @@ Think of it as a navigable data visualization that you can also play. The globe 
 
 - **Frontend**: Single-page React app (Vite + TypeScript)
 - **3D Globe**: Three.js (consider `three-globe` library or build from scratch — whichever gives better visual results)
-- **Backend**: Node.js + Express with WebSocket (socket.io) for real-time click propagation
-- **Database**: SQLite (via better-sqlite3) — simple, no setup
+- **Backend**: Go with Chi router, WebSocket (coder/websocket) for real-time click propagation
+- **Database**: SQLite (via modernc.org/sqlite, pure Go) — simple, no setup
 - **No auth for now**: Players pick a display name and location on first visit. Store identity in localStorage + cookie.
 
 ## The Globe (Central UI Element)
@@ -124,7 +124,7 @@ CREATE TABLE users (
 - `GET /api/leaderboard` — top N cities by total clicks
 - `POST /api/register` — body: `{ name, cityId }` → returns `{ userId }`, sets cookie
 
-### WebSocket Events (socket.io)
+### WebSocket Events (native WebSocket via coder/websocket)
 - **Client → Server**: `click` — user tapped the button
 - **Server → All**: `city_update { cityId, totalClicks, contributorCount }` — broadcast after each click
 - **Server → City Room** (nice-to-have): `city_click { cityId, userName }` — for showing other players clicking in real-time
@@ -143,32 +143,40 @@ CREATE TABLE users (
 
 ```
 clickcity/
-├── package.json
-├── server/
-│   ├── index.ts              # Express + socket.io server
-│   ├── db.ts                 # SQLite setup + queries
-│   ├── seed.ts               # Download + seed cities from dataset
-│   └── rateLimiter.ts        # Per-user rolling window rate limit
+├── Makefile
+├── go.mod / go.sum
+├── main.go                   # Chi router, middleware, graceful shutdown
+├── handlers.go               # REST endpoint handlers
+├── ws.go                     # WebSocket hub + client management
+├── db.go                     # SQLite setup + queries (WAL mode)
+├── seed.go                   # Download GeoNames data + populate SQLite
+├── ratelimit.go              # Per-user token bucket rate limiter
+├── models.go                 # Shared Go struct definitions
+├── static.go                 # Production: embeds client/dist/ via go:embed
+├── static_dev.go             # Dev: serves from filesystem (build tag "dev")
 ├── client/
 │   ├── index.html
+│   ├── vite.config.ts
 │   ├── src/
 │   │   ├── main.tsx
 │   │   ├── App.tsx
+│   │   ├── api.ts               # REST API client functions
+│   │   ├── types.ts
 │   │   ├── components/
-│   │   │   ├── Globe.tsx         # Three.js globe
-│   │   │   ├── CityMarker.tsx    # 3D markers on globe surface
+│   │   │   ├── Globe.tsx         # Three.js globe (react-globe.gl)
 │   │   │   ├── ClickButton.tsx   # The big satisfying button
 │   │   │   ├── InfoPanel.tsx     # City stats + block viz
 │   │   │   ├── Leaderboard.tsx   # Top cities list
 │   │   │   ├── Onboarding.tsx    # City picker overlay
-│   │   │   └── BuildingViz.tsx   # Pyramid block visualization (2D canvas or SVG)
-│   │   ├── hooks/
-│   │   │   └── useSocket.ts      # socket.io client hook
-│   │   └── types.ts
+│   │   │   ├── BuildingViz.tsx   # Pyramid block visualization (SVG)
+│   │   │   ├── GlobalCounter.tsx # Global click counter
+│   │   │   ├── ConnectionStatus.tsx # WebSocket status indicator
+│   │   │   └── ErrorBoundary.tsx # React error boundary
+│   │   └── hooks/
+│   │       ├── useWebSocket.ts   # ReconnectingWebSocket hook
+│   │       └── useClickHandler.ts # Click + optimistic update + rate tracking
 │   └── public/
-│       └── earth-topology.json   # GeoJSON for globe land outlines
-└── data/
-    └── cities.csv                # seed data (or download in seed script)
+└── data/                         # Downloaded during seed step
 ```
 
 ## Build Priority (do these in order)
@@ -206,5 +214,5 @@ The darkest blocks = cheapest (10k), lightest blocks = most expensive (100k). Th
 - SQLite is intentionally chosen. No Redis, Postgres, Docker, etc.
 - The globe is the hero — invest time making it look and feel great.
 - Clicks should feel instant: optimistic UI update before server confirmation.
-- Keep it lean: `npm install && npm run dev` should be all that's needed.
+- Keep it lean: `make seed && make dev-server & make dev-client` should be all that's needed.
 - For the city dataset, download during the seed step rather than checking in large files.

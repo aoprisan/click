@@ -10,9 +10,10 @@ interface ClickButtonProps {
   onClick: () => void
   personalClicks: number
   cityName?: string
+  rateLimited?: boolean
 }
 
-export default function ClickButton({ onClick, personalClicks, cityName }: ClickButtonProps) {
+export default function ClickButton({ onClick, personalClicks, cityName, rateLimited }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
@@ -94,6 +95,15 @@ export default function ClickButton({ onClick, personalClicks, cityName }: Click
         {personalClicks.toLocaleString()}
       </span>
 
+      {rateLimited && (
+        <span style={{
+          fontSize: 11, color: '#ff6b6b', fontFamily: 'var(--font-sans)',
+          animation: 'fadeInOut 2s ease-out forwards',
+        }}>
+          Slow down!
+        </span>
+      )}
+
       <style>{`
         @keyframes ripple {
           0% { transform: scale(1); opacity: 0.6; }
@@ -102,6 +112,11 @@ export default function ClickButton({ onClick, personalClicks, cityName }: Click
         @keyframes particleFade {
           0% { transform: translate(0, 0) scale(1); opacity: 1; }
           100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+        }
+        @keyframes fadeInOut {
+          0% { opacity: 1; }
+          70% { opacity: 1; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>

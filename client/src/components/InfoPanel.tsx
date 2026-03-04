@@ -1,4 +1,6 @@
-import type { City } from '../types'
+import { useEffect, useState } from 'react'
+import type { City, Contributor } from '../types'
+import { fetchCityDetail } from '../api'
 import BuildingViz from './BuildingViz'
 
 interface InfoPanelProps {
@@ -9,6 +11,16 @@ interface InfoPanelProps {
 }
 
 export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelProps) {
+  const [contributors, setContributors] = useState<Contributor[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchCityDetail(city.id).then(detail => {
+      if (!cancelled) setContributors(detail.topContributors)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [city.id, city.totalClicks])
+
   return (
     <div className="panel" style={{
       bottom: 32, left: 24, width: 280,
@@ -61,6 +73,26 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
           </div>
         )}
       </div>
+
+      {contributors.length > 0 && (
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>
+            Top Contributors
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+            {contributors.map((c, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+                  {c.name}
+                </span>
+                <span className="mono" style={{ color: 'var(--text-dim)', flexShrink: 0, marginLeft: 8 }}>
+                  {c.totalClicks.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {city.totalClicks > 0 && (
         <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>

@@ -67,9 +67,8 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     const city = d as City
     if (city.id === userCityId) return '#f7c948'
     if (city.id === selectedCityId) return '#ff6b6b'
-    if (city.id === pulsingCityId) return '#ffffff'
     return city.totalClicks > 0 ? '#f7c94888' : '#f7c94833'
-  }, [userCityId, selectedCityId, pulsingCityId])
+  }, [userCityId, selectedCityId])
 
   const pointRadius = useCallback((d: any) => {
     const city = d as City
@@ -94,6 +93,14 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     </div>`
   }, [])
 
+  // Pulse ring for cities receiving clicks
+  const ringsData = useMemo(() => {
+    if (!pulsingCityId) return []
+    const city = cities.find(c => c.id === pulsingCityId)
+    if (!city) return []
+    return [{ lat: city.lat, lng: city.lng }]
+  }, [pulsingCityId, cities])
+
   return (
     <GlobeGL
       ref={globeRef}
@@ -115,6 +122,14 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       pointLabel={pointLabel}
       onPointClick={handlePointClick}
       pointsTransitionDuration={0}
+      // Pulse rings for live click activity
+      ringsData={ringsData}
+      ringLat="lat"
+      ringLng="lng"
+      ringColor={() => '#f7c948'}
+      ringMaxRadius={3}
+      ringPropagationSpeed={2}
+      ringRepeatPeriod={800}
       // Atmosphere
       atmosphereColor="#3a228a"
       atmosphereAltitude={0.2}
