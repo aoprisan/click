@@ -4,8 +4,8 @@ import Leaderboard from './Leaderboard'
 import type { City } from '../types'
 
 const mockCities: City[] = [
-  { id: 'berlin-de', name: 'Berlin', country: 'Germany', countryCode: 'DE', lat: 52.5, lng: 13.4, totalClicks: 500, contributorCount: 3 },
-  { id: 'paris-fr', name: 'Paris', country: 'France', countryCode: 'FR', lat: 48.8, lng: 2.3, totalClicks: 300, contributorCount: 2 },
+  { id: 'berlin-de', name: 'Berlin', country: 'Germany', countryCode: 'DE', lat: 52.5, lng: 13.4, totalClicks: 500, contributorCount: 3, highestEverPopulation: 500, totalDead: 0, missileStockpile: 0 },
+  { id: 'paris-fr', name: 'Paris', country: 'France', countryCode: 'FR', lat: 48.8, lng: 2.3, totalClicks: 300, contributorCount: 2, highestEverPopulation: 300, totalDead: 0, missileStockpile: 0 },
 ]
 
 describe('Leaderboard', () => {
@@ -19,19 +19,17 @@ describe('Leaderboard', () => {
 
   it('shows empty state when no cities', () => {
     render(<Leaderboard cities={[]} />)
-    expect(screen.getByText('No clicks yet')).toBeInTheDocument()
+    expect(screen.getByText('No population yet')).toBeInTheDocument()
   })
 
   it('toggles collapse', () => {
     render(<Leaderboard cities={mockCities} />)
     expect(screen.getByText('Berlin')).toBeVisible()
 
-    // Click header to collapse
-    fireEvent.click(screen.getByText('Top Cities'))
+    fireEvent.click(screen.getByText('Most Populated'))
     expect(screen.queryByText('Berlin')).not.toBeInTheDocument()
 
-    // Click again to expand
-    fireEvent.click(screen.getByText('Top Cities'))
+    fireEvent.click(screen.getByText('Most Populated'))
     expect(screen.getByText('Berlin')).toBeInTheDocument()
   })
 })

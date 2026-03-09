@@ -36,6 +36,10 @@ func main() {
 		return
 	}
 
+	// Start background workers
+	startSnapshotWorker()
+	startSubscriptionExpiryChecker()
+
 	origins := strings.Split(*wsOrigins, ",")
 	wsHub := newHub(origins)
 
@@ -48,8 +52,14 @@ func main() {
 		r.Get("/cities", handleGetCities)
 		r.Get("/cities/{id}", handleGetCity)
 		r.Get("/leaderboard", handleGetLeaderboard)
+		r.Get("/stats", handleGetStats)
 		r.Post("/register", handleRegister)
 		r.Get("/me", handleGetMe)
+		r.Get("/me/missiles", handleGetMyMissiles)
+		r.Post("/missiles/{id}/fire", wsHub.handleFireMissile)
+		r.Post("/subscribe", handleSubscribe)
+		r.Get("/me/subscription", handleGetSubscription)
+		r.Post("/subscribe/renew", handleRenewSubscription)
 	})
 
 	// WebSocket

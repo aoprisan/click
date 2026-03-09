@@ -38,6 +38,7 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     if (controls) {
       controls.autoRotate = true
       controls.autoRotateSpeed = 0.4
+      controls.enableDamping = false // No inertia/throw effect on drag
     }
   }, [])
 

@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func TestWSRejectsUnauthenticated(t *testing.T) {
+func TestWSAcceptsSpectator(t *testing.T) {
 	setupTestDB(t)
 	h := newHub([]string{"*"})
 
@@ -21,15 +21,27 @@ func TestWSRejectsUnauthenticated(t *testing.T) {
 	srv := httptest.NewServer(r)
 	defer srv.Close()
 
-	// Attempt to connect without cookie
+	// Connect without cookie — should be accepted as spectator
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, resp, err := websocket.Dial(ctx, srv.URL+"/ws", nil)
-	if err == nil {
-		t.Fatal("expected connection to be rejected")
+	conn, _, err := websocket.Dial(ctx, srv.URL+"/ws", nil)
+	if err != nil {
+		t.Fatalf("spectator connection should be accepted, got error: %v", err)
 	}
-	if resp != nil && resp.StatusCode != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", resp.StatusCode)
+	defer conn.Close(websocket.StatusNormalClosure, "")
+
+	// Spectator should not be able to send clicks that are processed
+	clickMsg, _ := json.Marshal(WSIncoming{Type: "click"})
+	if err := conn.Write(ctx, websocket.MessageText, clickMsg); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	// No response expected (click is ignored for spectators)
+	shortCtx, shortCancel := context.WithTimeout(ctx, 300*time.Millisecond)
+	defer shortCancel()
+	_, _, err = conn.Read(shortCtx)
+	if err == nil {
+		t.Error("spectator should not receive any broadcast from their own click")
 	}
 }
 

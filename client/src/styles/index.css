@@ -1,6 +1,8 @@
 :root {
   --gold: #f7c948;
   --gold-dim: #b8941a;
+  --red: #f87171;
+  --red-dim: #991b1b;
   --bg: #0a0a12;
   --bg-panel: rgba(10, 10, 18, 0.85);
   --text: #e8e8f0;
@@ -42,12 +44,13 @@ html, body, #root {
   top: 20px;
   left: 24px;
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--gold);
   letter-spacing: 2px;
   z-index: 10;
   user-select: none;
+  text-shadow: 0 0 20px rgba(247, 201, 72, 0.3);
 }
 
 /* Number formatting */
@@ -72,7 +75,7 @@ html, body, #root {
   .logo {
     top: 10px;
     left: 12px;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .global-counter {
@@ -96,6 +99,20 @@ html, body, #root {
     overflow-y: auto;
   }
 
+  .player-panel {
+    width: 180px !important;
+    right: 12px !important;
+    bottom: 130px !important;
+    padding: 10px !important;
+  }
+
+  .missile-panel {
+    width: 200px !important;
+    left: 12px !important;
+    top: 50px !important;
+    padding: 10px !important;
+  }
+
   .click-button-area {
     bottom: 20px !important;
     right: 16px !important;
@@ -104,7 +121,7 @@ html, body, #root {
   .click-button-area button {
     width: 90px !important;
     height: 90px !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
   }
 }
 
@@ -112,7 +129,7 @@ html, body, #root {
   .logo {
     top: 8px;
     left: 10px;
-    font-size: 14px;
+    font-size: 12px;
     letter-spacing: 1px;
   }
 

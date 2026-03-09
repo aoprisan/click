@@ -30,11 +30,9 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
     }
 
     if (cityChanged) {
-      // Immediate fetch when switching cities
       clearTimeout(refreshTimer.current)
       doFetch()
     } else {
-      // Debounced fetch on click updates
       if (!refreshTimer.current) {
         refreshTimer.current = setTimeout(() => {
           refreshTimer.current = undefined
@@ -80,22 +78,49 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Total clicks</span>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Population</span>
           <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
             {city.totalClicks.toLocaleString()}
           </span>
         </div>
 
+        {city.highestEverPopulation > 0 && city.highestEverPopulation !== city.totalClicks && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Highest ever</span>
+            <span className="mono" style={{ fontSize: 14 }}>
+              {city.highestEverPopulation.toLocaleString()}
+            </span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Contributors</span>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Citizens</span>
           <span className="mono" style={{ fontSize: 14 }}>
             {city.contributorCount.toLocaleString()}
           </span>
         </div>
 
+        {city.missileStockpile > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Missile stockpile</span>
+            <span className="mono" style={{ fontSize: 14, color: '#f87171' }}>
+              {city.missileStockpile}
+            </span>
+          </div>
+        )}
+
+        {city.totalDead > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Total dead</span>
+            <span className="mono" style={{ fontSize: 14, color: '#f87171' }}>
+              {city.totalDead.toLocaleString()}
+            </span>
+          </div>
+        )}
+
         {userClicks !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Your clicks</span>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Your contribution</span>
             <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
               {userClicks.toLocaleString()}
             </span>
@@ -106,7 +131,7 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
       {contributors.length > 0 && (
         <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
           <span style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Top Contributors
+            Top Citizens
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
             {contributors.map((c, i) => (

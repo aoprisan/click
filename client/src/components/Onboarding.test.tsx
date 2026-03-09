@@ -8,9 +8,9 @@ vi.mock('../api', () => ({
 }))
 
 const mockCities: City[] = [
-  { id: 'berlin-de', name: 'Berlin', country: 'Germany', countryCode: 'DE', lat: 52.52, lng: 13.41, totalClicks: 0, contributorCount: 0 },
-  { id: 'paris-fr', name: 'Paris', country: 'France', countryCode: 'FR', lat: 48.86, lng: 2.35, totalClicks: 0, contributorCount: 0 },
-  { id: 'tokyo-jp', name: 'Tokyo', country: 'Japan', countryCode: 'JP', lat: 35.69, lng: 139.69, totalClicks: 0, contributorCount: 0 },
+  { id: 'berlin-de', name: 'Berlin', country: 'Germany', countryCode: 'DE', lat: 52.52, lng: 13.41, totalClicks: 0, contributorCount: 0, highestEverPopulation: 0, totalDead: 0, missileStockpile: 0 },
+  { id: 'paris-fr', name: 'Paris', country: 'France', countryCode: 'FR', lat: 48.86, lng: 2.35, totalClicks: 0, contributorCount: 0, highestEverPopulation: 0, totalDead: 0, missileStockpile: 0 },
+  { id: 'tokyo-jp', name: 'Tokyo', country: 'Japan', countryCode: 'JP', lat: 35.69, lng: 139.69, totalClicks: 0, contributorCount: 0, highestEverPopulation: 0, totalDead: 0, missileStockpile: 0 },
 ]
 
 describe('Onboarding', () => {
@@ -52,6 +52,7 @@ describe('Onboarding', () => {
     await waitFor(() => {
       expect(onRegistered).toHaveBeenCalledWith({
         id: 'u1', name: 'Alice', cityId: 'berlin-de', totalClicks: 0,
+        role: 'builder', totalKills: 0, best10s: 0, best1day: 0, clickMissileClicks: 0, lastCumulativeThreshold: 0,
       })
     })
   })

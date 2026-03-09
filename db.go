@@ -25,7 +25,11 @@ func initDB(path string) error {
 		return fmt.Errorf("set busy_timeout: %w", err)
 	}
 
-	return createSchema()
+	if err := createSchema(); err != nil {
+		return err
+	}
+
+	return runMigrations()
 }
 
 func createSchema() error {
@@ -57,9 +61,17 @@ func createSchema() error {
 	return err
 }
 
+const cityCols = `id, name, country, country_code, lat, lng, total_clicks, contributor_count, COALESCE(highest_ever_population, 0), COALESCE(total_dead, 0), COALESCE(missile_stockpile, 0)`
+
+func scanCity(scanner interface{ Scan(...interface{}) error }) (City, error) {
+	var c City
+	err := scanner.Scan(&c.ID, &c.Name, &c.Country, &c.CountryCode, &c.Lat, &c.Lng, &c.TotalClicks, &c.ContributorCount, &c.HighestEverPopulation, &c.TotalDead, &c.MissileStockpile)
+	return c, err
+}
+
 // getAllCities returns all cities ordered by total clicks descending.
 func getAllCities() ([]City, error) {
-	rows, err := db.Query(`SELECT id, name, country, country_code, lat, lng, total_clicks, contributor_count FROM cities ORDER BY total_clicks DESC`)
+	rows, err := db.Query(`SELECT ` + cityCols + ` FROM cities ORDER BY total_clicks DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +79,8 @@ func getAllCities() ([]City, error) {
 
 	cities := make([]City, 0)
 	for rows.Next() {
-		var c City
-		if err := rows.Scan(&c.ID, &c.Name, &c.Country, &c.CountryCode, &c.Lat, &c.Lng, &c.TotalClicks, &c.ContributorCount); err != nil {
+		c, err := scanCity(rows)
+		if err != nil {
 			return nil, err
 		}
 		cities = append(cities, c)
@@ -78,9 +90,7 @@ func getAllCities() ([]City, error) {
 
 // getCityDetail returns a single city with its top 10 contributors.
 func getCityDetail(cityID string) (*CityDetail, error) {
-	var c City
-	err := db.QueryRow(`SELECT id, name, country, country_code, lat, lng, total_clicks, contributor_count FROM cities WHERE id = ?`, cityID).
-		Scan(&c.ID, &c.Name, &c.Country, &c.CountryCode, &c.Lat, &c.Lng, &c.TotalClicks, &c.ContributorCount)
+	c, err := scanCity(db.QueryRow(`SELECT `+cityCols+` FROM cities WHERE id = ?`, cityID))
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +118,7 @@ func getCityDetail(cityID string) (*CityDetail, error) {
 
 // getLeaderboard returns the top N cities by total clicks.
 func getLeaderboard(limit int) ([]City, error) {
-	rows, err := db.Query(`SELECT id, name, country, country_code, lat, lng, total_clicks, contributor_count FROM cities WHERE total_clicks > 0 ORDER BY total_clicks DESC LIMIT ?`, limit)
+	rows, err := db.Query(`SELECT `+cityCols+` FROM cities WHERE total_clicks > 0 ORDER BY total_clicks DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +126,8 @@ func getLeaderboard(limit int) ([]City, error) {
 
 	cities := make([]City, 0)
 	for rows.Next() {
-		var c City
-		if err := rows.Scan(&c.ID, &c.Name, &c.Country, &c.CountryCode, &c.Lat, &c.Lng, &c.TotalClicks, &c.ContributorCount); err != nil {
+		c, err := scanCity(rows)
+		if err != nil {
 			return nil, err
 		}
 		cities = append(cities, c)
@@ -125,12 +135,13 @@ func getLeaderboard(limit int) ([]City, error) {
 	return cities, rows.Err()
 }
 
-// getUser returns a user by ID.
-func getUser(userID string) (*User, error) {
+const userCols = `id, name, city_id, total_clicks, created_at, last_click_at, COALESCE(role, 'builder'), COALESCE(total_kills, 0), COALESCE(best_10s, 0), COALESCE(best_1day, 0), COALESCE(click_missile_clicks, 0), COALESCE(last_cumulative_threshold, 0)`
+
+func scanUser(scanner interface{ Scan(...interface{}) error }) (*User, error) {
 	var u User
 	var lastClick sql.NullTime
-	err := db.QueryRow(`SELECT id, name, city_id, total_clicks, created_at, last_click_at FROM users WHERE id = ?`, userID).
-		Scan(&u.ID, &u.Name, &u.CityID, &u.TotalClicks, &u.CreatedAt, &lastClick)
+	err := scanner.Scan(&u.ID, &u.Name, &u.CityID, &u.TotalClicks, &u.CreatedAt, &lastClick,
+		&u.Role, &u.TotalKills, &u.Best10s, &u.Best1Day, &u.ClickMissileClicks, &u.LastCumulativeThreshold)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +149,11 @@ func getUser(userID string) (*User, error) {
 		u.LastClickAt = &lastClick.Time
 	}
 	return &u, nil
+}
+
+// getUser returns a user by ID.
+func getUser(userID string) (*User, error) {
+	return scanUser(db.QueryRow(`SELECT `+userCols+` FROM users WHERE id = ?`, userID))
 }
 
 // createUser inserts a new user and increments the city's contributor count.
@@ -157,18 +173,23 @@ func createUser(id, name, cityID string) error {
 	return tx.Commit()
 }
 
-// recordClick atomically increments user + city click counts. Returns updated city stats.
-func recordClick(userID, cityID string) (*CityUpdate, error) {
+// recordClick atomically increments user + city click counts. multiplier is 1 for builders, 2 for warriors.
+// Returns updated city stats.
+func recordClick(userID, cityID string, multiplier int) (*CityUpdate, error) {
+	if multiplier < 1 {
+		multiplier = 1
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(`UPDATE users SET total_clicks = total_clicks + 1, last_click_at = CURRENT_TIMESTAMP WHERE id = ?`, userID); err != nil {
+	if _, err := tx.Exec(`UPDATE users SET total_clicks = total_clicks + ?, last_click_at = CURRENT_TIMESTAMP WHERE id = ?`, multiplier, userID); err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(`UPDATE cities SET total_clicks = total_clicks + 1 WHERE id = ?`, cityID); err != nil {
+	if _, err := tx.Exec(`UPDATE cities SET total_clicks = total_clicks + ?, highest_ever_population = MAX(COALESCE(highest_ever_population, 0), total_clicks + ?) WHERE id = ?`, multiplier, multiplier, cityID); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -177,8 +198,8 @@ func recordClick(userID, cityID string) (*CityUpdate, error) {
 
 	var update CityUpdate
 	update.CityID = cityID
-	err = db.QueryRow(`SELECT total_clicks, contributor_count FROM cities WHERE id = ?`, cityID).
-		Scan(&update.TotalClicks, &update.ContributorCount)
+	err = db.QueryRow(`SELECT total_clicks, contributor_count, COALESCE(highest_ever_population, 0) FROM cities WHERE id = ?`, cityID).
+		Scan(&update.TotalClicks, &update.ContributorCount, &update.HighestEverPopulation)
 	if err != nil {
 		return nil, err
 	}
@@ -194,4 +215,83 @@ func cityExists(cityID string) bool {
 		return false
 	}
 	return true
+}
+
+// getGlobalStats returns aggregated world statistics.
+func getGlobalStats() (*GlobalStats, error) {
+	var stats GlobalStats
+
+	err := db.QueryRow(`SELECT COALESCE(SUM(total_clicks), 0), COUNT(*) FROM cities WHERE total_clicks > 0`).
+		Scan(&stats.WorldPopulation, &stats.CityCount)
+	if err != nil {
+		return nil, err
+	}
+
+	if stats.CityCount > 0 {
+		stats.AvgPopulation = float64(stats.WorldPopulation) / float64(stats.CityCount)
+	}
+
+	// Highest ever city
+	err = db.QueryRow(`SELECT COALESCE(name, ''), COALESCE(highest_ever_population, 0) FROM cities ORDER BY highest_ever_population DESC LIMIT 1`).
+		Scan(&stats.HighestEverCity, &stats.HighestEverPop)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	// World missile stockpile
+	db.QueryRow(`SELECT COALESCE(SUM(missile_stockpile), 0) FROM cities`).Scan(&stats.WorldMissileStockpile)
+
+	stats.DailyChangePercent = getGlobalDailyChangePercent()
+
+	return &stats, nil
+}
+
+const missileCols = `id, user_id, missile_type, source, range_km, damage_lower, damage_upper, fired, fired_at, target_city_id, damage_dealt`
+
+func scanMissile(scanner interface{ Scan(...interface{}) error }) (Missile, error) {
+	var m Missile
+	var firedInt int
+	var firedAt sql.NullTime
+	var targetCity sql.NullString
+	err := scanner.Scan(&m.ID, &m.UserID, &m.MissileType, &m.Source, &m.RangeKM, &m.DamageLower, &m.DamageUpper,
+		&firedInt, &firedAt, &targetCity, &m.DamageDealt)
+	if err != nil {
+		return m, err
+	}
+	m.Fired = firedInt != 0
+	if firedAt.Valid {
+		m.FiredAt = &firedAt.Time
+	}
+	if targetCity.Valid {
+		m.TargetCityID = &targetCity.String
+	}
+	return m, nil
+}
+
+// getUserUnfiredMissiles returns all unfired missiles for a user.
+func getUserUnfiredMissiles(userID string) ([]Missile, error) {
+	rows, err := db.Query(`SELECT `+missileCols+` FROM missiles WHERE user_id = ? AND fired = 0`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	missiles := make([]Missile, 0)
+	for rows.Next() {
+		m, err := scanMissile(rows)
+		if err != nil {
+			return nil, err
+		}
+		missiles = append(missiles, m)
+	}
+	return missiles, rows.Err()
+}
+
+// getUserUnfiredMissileBySource returns a user's unfired missile from a specific source.
+func getUserUnfiredMissileBySource(userID, source string) (*Missile, error) {
+	m, err := scanMissile(db.QueryRow(`SELECT `+missileCols+` FROM missiles WHERE user_id = ? AND source = ? AND fired = 0 LIMIT 1`, userID, source))
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
 }

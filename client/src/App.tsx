@@ -4,14 +4,17 @@ import Onboarding from './components/Onboarding'
 import ClickButton from './components/ClickButton'
 import InfoPanel from './components/InfoPanel'
 import Leaderboard from './components/Leaderboard'
-import GlobalCounter from './components/GlobalCounter'
+import GlobalDataPanel from './components/GlobalDataPanel'
 import ConnectionStatus from './components/ConnectionStatus'
-import CityClickToast, { useCityClickToasts } from './components/CityClickToast'
+import ToastSystem, { useToasts } from './components/ToastSystem'
+import PlayerPanel from './components/PlayerPanel'
+import MissilePanel from './components/MissilePanel'
+import SubscriptionPanel from './components/SubscriptionPanel'
 import ErrorBoundary from './components/ErrorBoundary'
-import { fetchCities, fetchLeaderboard, fetchMe } from './api'
+import { fetchCities, fetchLeaderboard, fetchMe, fetchStats, fireMissile } from './api'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useClickHandler } from './hooks/useClickHandler'
-import type { City, User, CityUpdate, CityClick } from './types'
+import type { City, User, CityUpdate, CityClick, MissileStrikeData, AchievementEarnedData, GlobalStats, GameMode, Missile } from './types'
 
 const LEADERBOARD_REFRESH_MS = 3000
 
@@ -23,22 +26,34 @@ export default function App() {
   const [pulsingCityId, setPulsingCityId] = useState<string | null>(null)
   const [leaderboard, setLeaderboard] = useState<City[]>([])
   const [onboardingState, setOnboardingState] = useState<'hidden' | 'visible' | 'fading'>('hidden')
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
+  const [missileRefreshKey, setMissileRefreshKey] = useState(0)
+  const [targetingMissile, setTargetingMissile] = useState<Missile | null>(null)
   const leaderboardTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const { toasts, addToast } = useCityClickToasts()
+  const { toasts, addToast } = useToasts()
+
+  // Derive game mode from user state
+  const gameMode: GameMode = user
+    ? (user.role === 'warrior' ? 'warrior' : 'builder')
+    : 'spectator'
 
   // Load cities + check existing session
   useEffect(() => {
-    Promise.all([fetchCities(), fetchMe(), fetchLeaderboard(10)])
-      .then(([citiesData, userData, leaderboardData]) => {
+    Promise.all([fetchCities(), fetchMe(), fetchLeaderboard(10), fetchStats()])
+      .then(([citiesData, userData, leaderboardData, statsData]) => {
         setCities(citiesData)
         setLeaderboard(leaderboardData)
+        setGlobalStats(statsData)
         if (userData) {
           setUser(userData)
-
           const home = citiesData.find(c => c.id === userData.cityId)
           if (home) setSelectedCity(home)
         } else {
-          setOnboardingState('visible')
+          // Spectator: auto-select #1 city from leaderboard
+          if (leaderboardData.length > 0) {
+            const topCity = citiesData.find(c => c.id === leaderboardData[0].id)
+            if (topCity) setSelectedCity(topCity)
+          }
         }
       })
       .finally(() => setLoading(false))
@@ -49,70 +64,129 @@ export default function App() {
     return () => clearTimeout(leaderboardTimer.current)
   }, [])
 
-  // Throttled leaderboard refresh (at most once per LEADERBOARD_REFRESH_MS)
+  // Throttled leaderboard refresh
   const refreshLeaderboard = useCallback(() => {
     if (leaderboardTimer.current) return
     leaderboardTimer.current = setTimeout(() => {
       fetchLeaderboard(10).then(setLeaderboard).catch(() => {})
+      fetchStats().then(setGlobalStats).catch(() => {})
       leaderboardTimer.current = undefined
     }, LEADERBOARD_REFRESH_MS)
   }, [])
+
+  // Ref for reconcile to avoid ordering issues (onCityUpdate defined before useClickHandler)
+  const reconcileRef = useRef<(serverTotal: number) => void>(() => {})
 
   // Handle WS city updates
   const onCityUpdate = useCallback((update: CityUpdate) => {
     setCities(prev =>
       prev.map(c =>
         c.id === update.cityId
-          ? { ...c, totalClicks: update.totalClicks, contributorCount: update.contributorCount }
+          ? { ...c, totalClicks: update.totalClicks, contributorCount: update.contributorCount, highestEverPopulation: update.highestEverPopulation }
           : c
       )
     )
     setSelectedCity(prev =>
       prev && prev.id === update.cityId
-        ? { ...prev, totalClicks: update.totalClicks, contributorCount: update.contributorCount }
+        ? { ...prev, totalClicks: update.totalClicks, contributorCount: update.contributorCount, highestEverPopulation: update.highestEverPopulation }
         : prev
     )
-    // Pulse effect via rings
+    // Reconcile personal click counter with server truth
+    if (user && update.cityId === user.cityId) {
+      reconcileRef.current(update.totalClicks)
+    }
     setPulsingCityId(update.cityId)
     setTimeout(() => setPulsingCityId(null), 1500)
-    // Throttled leaderboard refresh
     refreshLeaderboard()
-  }, [refreshLeaderboard])
+  }, [refreshLeaderboard, user])
 
   const onCityClick = useCallback((click: CityClick) => {
-    // Only show toasts for clicks in the user's own city
     if (user && click.cityId === user.cityId) {
-      addToast(click)
+      addToast(`${click.userName} grew your city!`, 'click')
     }
   }, [user, addToast])
 
-  const ws = useWebSocket(user, onCityUpdate, onCityClick)
+  const onMissileStrike = useCallback((strike: MissileStrikeData) => {
+    if (user && strike.targetCityId === user.cityId) {
+      addToast(`${strike.attackerName} hit your city with ${strike.missileType}! -${strike.damage.toLocaleString()}`, 'missile_incoming')
+    } else {
+      addToast(`${strike.attackerName} fired ${strike.missileType}! -${strike.damage.toLocaleString()}`, 'missile_strike')
+    }
+    setMissileRefreshKey(k => k + 1)
+  }, [user, addToast])
 
-  const { handleClick, personalClicks, rateLimited } = useClickHandler(ws, user, () => {
+  const onAchievement = useCallback((data: AchievementEarnedData) => {
+    let msg = `Achievement: ${data.achievementName}`
+    if (data.missileType) {
+      msg += `. New missile: ${data.missileType}`
+    }
+    addToast(msg, 'achievement')
+    setMissileRefreshKey(k => k + 1)
+  }, [addToast])
+
+  const onMissileAwarded = useCallback((data: { missileType: string; source: string }) => {
+    addToast(`New missile: ${data.missileType} (${data.source})`, 'missile_awarded')
+    setMissileRefreshKey(k => k + 1)
+  }, [addToast])
+
+  const ws = useWebSocket(user, onCityUpdate, onCityClick, onMissileStrike, onAchievement, onMissileAwarded)
+
+  const { handleClick, personalClicks, pendingClicks, rateLimited, multiplier, reconcile } = useClickHandler(ws, user, () => {
     // Optimistic update for own clicks
     if (user) {
+      const mult = gameMode === 'warrior' ? 2 : 1
       setCities(prev =>
         prev.map(c =>
           c.id === user.cityId
-            ? { ...c, totalClicks: c.totalClicks + 1 }
+            ? { ...c, totalClicks: c.totalClicks + mult }
             : c
         )
       )
     }
-  })
+  }, gameMode)
+  reconcileRef.current = reconcile
+
+  const handleFireAtCity = useCallback(async (missile: Missile, targetCity: City) => {
+    setTargetingMissile(null)
+    try {
+      const result = await fireMissile(missile.id, targetCity.id)
+      addToast(`Fired ${result.missileType} at ${result.targetCity}! ${result.damage.toLocaleString()} damage`, 'missile_strike')
+      setMissileRefreshKey(k => k + 1)
+    } catch (e) {
+      addToast(`Fire failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'missile_strike')
+    }
+  }, [addToast])
 
   const handleCitySelect = useCallback((city: City) => {
+    if (targetingMissile) {
+      // In targeting mode: fire missile at selected city
+      handleFireAtCity(targetingMissile, city)
+      return
+    }
     setSelectedCity(city)
-  }, [])
+  }, [targetingMissile, handleFireAtCity])
+
+  const handleFireMissile = useCallback((missile: Missile) => {
+    setTargetingMissile(missile)
+    addToast(`Select a target city within ${missile.rangeKm}km range`, 'missile_awarded')
+  }, [addToast])
 
   const handleRegistered = useCallback((newUser: User) => {
     setUser(newUser)
     const home = cities.find(c => c.id === newUser.cityId)
     if (home) setSelectedCity(home)
-    // Fade out onboarding
     setOnboardingState('fading')
     setTimeout(() => setOnboardingState('hidden'), 400)
   }, [cities])
+
+  const handleSubscriptionUpgraded = useCallback(() => {
+    // Refresh user to get updated role
+    fetchMe().then(u => { if (u) setUser(u) }).catch(() => {})
+  }, [])
+
+  const handleSpectatorLogin = useCallback(() => {
+    setOnboardingState('visible')
+  }, [])
 
   const userCity = user ? cities.find(c => c.id === user.cityId) : null
   const totalGlobalClicks = useMemo(
@@ -143,33 +217,53 @@ export default function App() {
         />
       </ErrorBoundary>
 
-      <div className="logo">CLICKCITY</div>
+      <div className="logo">GLOBAL CONFLICT</div>
 
-      <GlobalCounter total={totalGlobalClicks} />
+      <GlobalDataPanel stats={globalStats} totalPopulation={totalGlobalClicks} />
 
-      <CityClickToast toasts={toasts} />
+      <ToastSystem toasts={toasts} />
 
       <Leaderboard cities={leaderboard} />
 
-      {user && selectedCity && (
+      {selectedCity && (
         <InfoPanel
           city={selectedCity}
-          isHome={selectedCity.id === user.cityId}
-          userClicks={selectedCity.id === user.cityId ? (user.totalClicks + personalClicks) : undefined}
+          isHome={user ? selectedCity.id === user.cityId : false}
+          userClicks={user && selectedCity.id === user.cityId ? personalClicks : undefined}
           rank={selectedCityRank}
         />
       )}
 
       {user && (
-        <ClickButton
-          onClick={handleClick}
-          personalClicks={user.totalClicks + personalClicks}
+        <PlayerPanel
+          user={user}
+          gameMode={gameMode}
+          personalClicks={personalClicks}
           cityName={userCity?.name}
-          rateLimited={rateLimited}
         />
       )}
 
-      {user && <ConnectionStatus state={ws.connectionState} />}
+      <MissilePanel
+        gameMode={gameMode}
+        onFireMissile={handleFireMissile}
+        refreshKey={missileRefreshKey}
+      />
+
+      <SubscriptionPanel
+        gameMode={gameMode}
+        onUpgraded={handleSubscriptionUpgraded}
+      />
+
+      <ClickButton
+        onClick={gameMode === 'spectator' ? handleSpectatorLogin : handleClick}
+        personalClicks={user ? personalClicks : 0}
+        cityName={userCity?.name}
+        rateLimited={rateLimited}
+        gameMode={gameMode}
+        multiplier={multiplier}
+      />
+
+      <ConnectionStatus state={ws.connectionState} />
 
       {onboardingState !== 'hidden' && (
         <Onboarding
@@ -177,6 +271,26 @@ export default function App() {
           onRegistered={handleRegistered}
           fading={onboardingState === 'fading'}
         />
+      )}
+
+      {targetingMissile && (
+        <div style={{
+          position: 'absolute', bottom: 160, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 50, background: 'rgba(248, 113, 113, 0.2)', border: '1px solid rgba(248, 113, 113, 0.4)',
+          borderRadius: 8, padding: '8px 16px', fontSize: 12, color: '#f87171',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <span>Targeting: {targetingMissile.missileType} ({targetingMissile.rangeKm}km)</span>
+          <button
+            onClick={() => setTargetingMissile(null)}
+            style={{
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 4, padding: '2px 8px', color: 'var(--text)', cursor: 'pointer', fontSize: 11,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
     </>
   )

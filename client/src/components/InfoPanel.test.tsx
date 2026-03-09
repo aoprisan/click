@@ -6,6 +6,7 @@ import type { City } from '../types'
 const mockCity: City = {
   id: 'berlin-de', name: 'Berlin', country: 'Germany', countryCode: 'DE',
   lat: 52.5, lng: 13.4, totalClicks: 1500, contributorCount: 5,
+  highestEverPopulation: 1500, totalDead: 0, missileStockpile: 0,
 }
 
 describe('InfoPanel', () => {

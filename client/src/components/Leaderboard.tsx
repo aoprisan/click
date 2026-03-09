@@ -20,7 +20,7 @@ export default function Leaderboard({ cities }: LeaderboardProps) {
         }}
       >
         <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--text-dim)', letterSpacing: 1, textTransform: 'uppercase' }}>
-          Top Cities
+          Most Populated
         </span>
         <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>{collapsed ? '+' : '-'}</span>
       </div>
@@ -28,7 +28,7 @@ export default function Leaderboard({ cities }: LeaderboardProps) {
       {!collapsed && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {cities.length === 0 && (
-            <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>No clicks yet</span>
+            <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>No population yet</span>
           )}
           {cities.map((city, i) => (
             <div key={city.id} style={{

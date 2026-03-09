@@ -32,7 +32,7 @@ export default function Onboarding({ cities, onRegistered, fading }: OnboardingP
     setError('')
     try {
       const res = await register(name.trim(), selectedCityId)
-      onRegistered({ id: res.userId, name: res.name, cityId: res.cityId, totalClicks: 0 })
+      onRegistered({ id: res.userId, name: res.name, cityId: res.cityId, totalClicks: 0, role: 'builder', totalKills: 0, best10s: 0, best1day: 0, clickMissileClicks: 0, lastCumulativeThreshold: 0 })
     } catch {
       setError('Registration failed. Try again.')
     } finally {
@@ -54,7 +54,7 @@ export default function Onboarding({ cities, onRegistered, fading }: OnboardingP
         maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <h2 style={{ fontFamily: 'var(--font-mono)', color: 'var(--gold)', fontSize: 18, textAlign: 'center' }}>
-          CLICKCITY
+          GLOBAL CONFLICT
         </h2>
 
         {step === 'city' && (

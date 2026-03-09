@@ -109,6 +109,30 @@ func handleGetMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, user)
 }
 
+func handleGetStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := getGlobalStats()
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, stats)
+}
+
+func handleGetMyMissiles(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		http.Error(w, "not registered", http.StatusUnauthorized)
+		return
+	}
+
+	missiles, err := getUserUnfiredMissiles(cookie.Value)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, missiles)
+}
+
 func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)

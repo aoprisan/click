@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import type { GameMode } from '../types'
 
 interface Particle {
   id: number
@@ -11,14 +12,22 @@ interface ClickButtonProps {
   personalClicks: number
   cityName?: string
   rateLimited?: boolean
+  gameMode: GameMode
+  multiplier: number
 }
 
-export default function ClickButton({ onClick, personalClicks, cityName, rateLimited }: ClickButtonProps) {
+export default function ClickButton({ onClick, personalClicks, cityName, rateLimited, gameMode, multiplier }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
 
   const handleClick = useCallback(() => {
+    if (gameMode === 'spectator') {
+      // Spectator click could trigger login flow
+      onClick()
+      return
+    }
+
     setPressing(true)
     setTimeout(() => setPressing(false), 100)
 
@@ -37,14 +46,16 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
     setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.some(np => np.id === p.id))), 500)
 
     onClick()
-  }, [onClick])
+  }, [onClick, gameMode])
+
+  const buttonLabel = gameMode === 'spectator' ? 'LOGIN' : `GROW +${multiplier}`
 
   return (
     <div className="click-button-area" style={{
       position: 'absolute', bottom: 32, right: 32, zIndex: 10,
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
     }}>
-      {cityName && (
+      {cityName && gameMode !== 'spectator' && (
         <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-sans)' }}>
           {cityName}
         </span>
@@ -77,23 +88,29 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
           onClick={handleClick}
           style={{
             width: 120, height: 120, borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 35%, #ffd866, var(--gold), var(--gold-dim))',
+            background: gameMode === 'spectator'
+              ? 'radial-gradient(circle at 35% 35%, #93c5fd, #60a5fa, #3b82f6)'
+              : 'radial-gradient(circle at 35% 35%, #ffd866, var(--gold), var(--gold-dim))',
             border: 'none', cursor: 'pointer',
-            boxShadow: '0 0 30px rgba(247, 201, 72, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)',
+            boxShadow: gameMode === 'spectator'
+              ? '0 0 30px rgba(96, 165, 250, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)'
+              : '0 0 30px rgba(247, 201, 72, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)',
             transform: pressing ? 'scale(0.92)' : 'scale(1)',
             transition: 'transform 0.1s ease',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: gameMode === 'spectator' ? 18 : 20, fontWeight: 700,
             color: '#1a1a2e',
           }}
         >
-          CLICK
+          {buttonLabel}
         </button>
       </div>
 
-      <span className="mono" style={{ fontSize: 16, color: 'var(--gold)' }}>
-        {personalClicks.toLocaleString()}
-      </span>
+      {gameMode !== 'spectator' && (
+        <span className="mono" style={{ fontSize: 16, color: 'var(--gold)' }}>
+          {personalClicks.toLocaleString()}
+        </span>
+      )}
 
       {rateLimited && (
         <span style={{

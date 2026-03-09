@@ -69,7 +69,7 @@ func TestRecordClick(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	update, err := recordClick("u1", "paris-fr")
+	update, err := recordClick("u1", "paris-fr", 1)
 	if err != nil {
 		t.Fatalf("recordClick: %v", err)
 	}
@@ -91,11 +91,11 @@ func TestRecordClick(t *testing.T) {
 
 	// Multiple clicks
 	for i := 0; i < 4; i++ {
-		if _, err := recordClick("u1", "paris-fr"); err != nil {
+		if _, err := recordClick("u1", "paris-fr", 1); err != nil {
 			t.Fatal(err)
 		}
 	}
-	update, _ = recordClick("u1", "paris-fr")
+	update, _ = recordClick("u1", "paris-fr", 1)
 	if update.TotalClicks != 6 {
 		t.Errorf("expected totalClicks=6, got %d", update.TotalClicks)
 	}
@@ -137,9 +137,9 @@ func TestGetLeaderboard(t *testing.T) {
 	if err := createUser("u2", "Bob", "a-us"); err != nil {
 		t.Fatal(err)
 	}
-	recordClick("u1", "b-de")
-	recordClick("u1", "b-de")
-	recordClick("u2", "a-us")
+	recordClick("u1", "b-de", 1)
+	recordClick("u1", "b-de", 1)
+	recordClick("u2", "a-us", 1)
 
 	lb, err = getLeaderboard(10)
 	if err != nil {
@@ -177,9 +177,9 @@ func TestGetCityDetail(t *testing.T) {
 	seedTestCity(t, "tokyo-jp", "Tokyo", "Japan", "JP")
 	createUser("u1", "Alice", "tokyo-jp")
 	createUser("u2", "Bob", "tokyo-jp")
-	recordClick("u1", "tokyo-jp")
-	recordClick("u1", "tokyo-jp")
-	recordClick("u2", "tokyo-jp")
+	recordClick("u1", "tokyo-jp", 1)
+	recordClick("u1", "tokyo-jp", 1)
+	recordClick("u2", "tokyo-jp", 1)
 
 	detail, err := getCityDetail("tokyo-jp")
 	if err != nil {
