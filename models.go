@@ -124,14 +124,15 @@ type CityClick struct {
 
 // MissileStrike is broadcast when a missile is fired.
 type MissileStrike struct {
-	AttackerName string `json:"attackerName"`
-	TargetCityID string `json:"targetCityId"`
-	MissileType  string `json:"missileType"`
-	Damage       int    `json:"damage"`
-	FromLat      float64 `json:"fromLat"`
-	FromLng      float64 `json:"fromLng"`
-	ToLat        float64 `json:"toLat"`
-	ToLng        float64 `json:"toLng"`
+	AttackerName     string  `json:"attackerName"`
+	AttackerCityName string  `json:"attackerCityName"`
+	TargetCityID     string  `json:"targetCityId"`
+	MissileType      string  `json:"missileType"`
+	Damage           int     `json:"damage"`
+	FromLat          float64 `json:"fromLat"`
+	FromLng          float64 `json:"fromLng"`
+	ToLat            float64 `json:"toLat"`
+	ToLng            float64 `json:"toLng"`
 }
 
 // AchievementEarned is sent to the clicking user when they earn an achievement.

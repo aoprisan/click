@@ -58,9 +58,10 @@ func (h *hub) handleFireMissile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get source city coords
+	// Get source city coords and name
 	var fromLat, fromLng float64
-	err = db.QueryRow(`SELECT lat, lng FROM cities WHERE id = ?`, user.CityID).Scan(&fromLat, &fromLng)
+	var fromCityName string
+	err = db.QueryRow(`SELECT lat, lng, name FROM cities WHERE id = ?`, user.CityID).Scan(&fromLat, &fromLng, &fromCityName)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -144,8 +145,9 @@ func (h *hub) handleFireMissile(w http.ResponseWriter, r *http.Request) {
 
 	// Broadcast missile strike to all clients
 	strike := MissileStrike{
-		AttackerName: user.Name,
-		TargetCityID: req.TargetCityID,
+		AttackerName:     user.Name,
+		AttackerCityName: fromCityName,
+		TargetCityID:     req.TargetCityID,
 		MissileType:  m.MissileType,
 		Damage:       damage,
 		FromLat:      fromLat,

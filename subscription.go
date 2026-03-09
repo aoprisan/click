@@ -100,8 +100,8 @@ func renewSubscription(userID string) (*Subscription, error) {
 		return nil, err
 	}
 
-	// Reset timed achievement bests on renewal
-	if _, err := tx.Exec(`UPDATE users SET role = 'warrior', best_10s = 0, best_1day = 0 WHERE id = ?`, userID); err != nil {
+	// Reset timed achievement bests and click missile progress on renewal
+	if _, err := tx.Exec(`UPDATE users SET role = 'warrior', best_10s = 0, best_1day = 0, click_missile_clicks = 0 WHERE id = ?`, userID); err != nil {
 		return nil, err
 	}
 

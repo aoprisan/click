@@ -84,6 +84,7 @@ export interface CityClick {
 
 export interface MissileStrikeData {
   attackerName: string
+  attackerCityName: string
   targetCityId: string
   missileType: string
   damage: number

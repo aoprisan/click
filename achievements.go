@@ -2,9 +2,16 @@ package main
 
 import (
 	"log/slog"
+	"math/rand"
 
 	"github.com/google/uuid"
 )
+
+// achievementMissilePool contains the non-Atlas missile types available for achievement rewards.
+var achievementMissilePool = []string{
+	"Imp I", "Imp II", "Imp III",
+	"Titan I", "Titan II", "Titan III",
+}
 
 // checkCumulativeAchievements returns names of newly earned cumulative achievements.
 func checkCumulativeAchievements(user *User) []string {
@@ -44,8 +51,8 @@ func checkCumulativeAchievements(user *User) []string {
 	return earned
 }
 
-// awardAchievementMissile awards a role-specific missile for an achievement.
-// Builders get Imp I, Warriors get Titan I. Replaces any existing unfired achievement missile.
+// awardAchievementMissile awards a randomly selected missile for an achievement.
+// Randomly picks from the non-Atlas pool. Replaces any existing unfired achievement missile.
 func awardAchievementMissile(userID, role string) *Missile {
 	// Delete existing unfired achievement missile
 	result, _ := db.Exec(`DELETE FROM missiles WHERE user_id = ? AND source = 'achievement' AND fired = 0`, userID)
@@ -54,15 +61,8 @@ func awardAchievementMissile(userID, role string) *Missile {
 		updateCityStockpile(userID, -1)
 	}
 
-	// Role-specific missile type per spec
-	var typeName string
-	switch role {
-	case "warrior":
-		typeName = "Titan I"
-	default:
-		typeName = "Imp I"
-	}
-
+	// Randomly select from non-Atlas missile pool
+	typeName := achievementMissilePool[rand.Intn(len(achievementMissilePool))]
 	selectedType := getMissileTypeDef(typeName)
 	if selectedType == nil {
 		return nil

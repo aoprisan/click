@@ -111,11 +111,11 @@ export default function App() {
 
   const onMissileStrike = useCallback((strike: MissileStrikeData) => {
     if (user && strike.targetCityId === user.cityId) {
-      addToast(`${strike.attackerName} launched ${strike.missileType} at your city! -${strike.damage.toLocaleString()}`, 'missile_incoming')
+      addToast(`${strike.damage.toLocaleString()} killed by missile from ${strike.attackerCityName}`, 'missile_incoming')
     } else {
       const targetCity = citiesRef.current.find(c => c.id === strike.targetCityId)
       const targetName = targetCity ? targetCity.name : 'unknown'
-      addToast(`${strike.attackerName} launched ${strike.missileType}! -${strike.damage.toLocaleString()} to ${targetName}`, 'missile_strike')
+      addToast(`${strike.damage.toLocaleString()} killed in ${targetName}`, 'missile_strike')
     }
     setMissileRefreshKey(k => k + 1)
   }, [user, addToast])
@@ -123,14 +123,14 @@ export default function App() {
   const onAchievement = useCallback((data: AchievementEarnedData) => {
     let msg = `Achievement: ${data.achievementName}`
     if (data.missileType) {
-      msg += `. New missile: ${data.missileType}`
+      msg += `. New missile available, ${data.missileType}`
     }
     addToast(msg, 'achievement')
     setMissileRefreshKey(k => k + 1)
   }, [addToast])
 
   const onMissileAwarded = useCallback((data: { missileType: string; source: string }) => {
-    addToast(`New missile: ${data.missileType} (${data.source})`, 'missile_awarded')
+    addToast(`New missile available, ${data.missileType}`, 'missile_awarded')
     setMissileRefreshKey(k => k + 1)
   }, [addToast])
 
@@ -160,7 +160,7 @@ export default function App() {
     setTargetingMissile(null)
     try {
       const result = await fireMissile(missile.id, targetCity.id)
-      addToast(`Fired ${result.missileType} at ${result.targetCity}! ${result.damage.toLocaleString()} damage`, 'missile_strike')
+      addToast(`${result.damage.toLocaleString()} killed in ${result.targetCity}`, 'missile_strike')
       setMissileRefreshKey(k => k + 1)
     } catch (e) {
       addToast(`Fire failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'missile_strike')
