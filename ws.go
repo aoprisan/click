@@ -238,7 +238,7 @@ func (h *hub) checkAchievementsAfterClick(c *client, multiplier int) {
 	// Check cumulative achievements
 	earned := checkCumulativeAchievements(user)
 	for _, ach := range earned {
-		missile := awardAchievementMissile(user.ID, user.Role)
+		missile := awardAchievementMissile(user.ID, user.CityID, user.Role)
 		msg := AchievementEarned{AchievementName: ach}
 		if missile != nil {
 			msg.MissileType = missile.MissileType
@@ -260,7 +260,7 @@ func (h *hub) checkAchievementsAfterClick(c *client, multiplier int) {
 
 // sendTimedAchievement awards an achievement missile and notifies the client.
 func (h *hub) sendTimedAchievement(c *client, user *User, name string) {
-	missile := awardAchievementMissile(user.ID, user.Role)
+	missile := awardAchievementMissile(user.ID, user.CityID, user.Role)
 	msg := AchievementEarned{AchievementName: name}
 	if missile != nil {
 		msg.MissileType = missile.MissileType

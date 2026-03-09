@@ -57,6 +57,8 @@ func (h *hub) checkClickMissiles(c *client, user *User) {
 			return
 		}
 
+		db.Exec(`UPDATE cities SET missile_stockpile = missile_stockpile + 1 WHERE id = ?`, user.CityID)
+
 		h.sendToClient(WSOutgoing{
 			Type: "missile_awarded",
 			Data: map[string]interface{}{

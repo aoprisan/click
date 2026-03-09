@@ -46,9 +46,12 @@ func checkCumulativeAchievements(user *User) []string {
 
 // awardAchievementMissile awards a role-specific missile for an achievement.
 // Builders get Imp I, Warriors get Titan I. Replaces any existing unfired achievement missile.
-func awardAchievementMissile(userID, role string) *Missile {
-	// Delete existing unfired achievement missile
-	db.Exec(`DELETE FROM missiles WHERE user_id = ? AND source = 'achievement' AND fired = 0`, userID)
+func awardAchievementMissile(userID, cityID, role string) *Missile {
+	// Delete existing unfired achievement missile and update stockpile
+	result, _ := db.Exec(`DELETE FROM missiles WHERE user_id = ? AND source = 'achievement' AND fired = 0`, userID)
+	if n, _ := result.RowsAffected(); n > 0 {
+		db.Exec(`UPDATE cities SET missile_stockpile = MAX(0, missile_stockpile - 1) WHERE id = ?`, cityID)
+	}
 
 	// Role-specific missile type per spec
 	var typeName string
@@ -81,6 +84,8 @@ func awardAchievementMissile(userID, role string) *Missile {
 		slog.Error("failed to insert achievement missile", "error", err)
 		return nil
 	}
+
+	db.Exec(`UPDATE cities SET missile_stockpile = missile_stockpile + 1 WHERE id = ?`, cityID)
 
 	return missile
 }
