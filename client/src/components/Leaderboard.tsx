@@ -6,7 +6,7 @@ interface LeaderboardProps {
 }
 
 export default function Leaderboard({ cities }: LeaderboardProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth <= 768)
 
   return (
     <div className="panel leaderboard-panel" style={{

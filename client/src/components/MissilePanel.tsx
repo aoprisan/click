@@ -10,7 +10,7 @@ interface MissilePanelProps {
 
 export default function MissilePanel({ gameMode, onFireMissile, refreshKey }: MissilePanelProps) {
   const [missiles, setMissiles] = useState<Missile[]>([])
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth <= 768)
 
   const loadMissiles = useCallback(() => {
     if (gameMode === 'spectator') return

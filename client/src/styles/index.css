@@ -109,8 +109,20 @@ html, body, #root {
   .missile-panel {
     width: 200px !important;
     left: 12px !important;
-    top: 50px !important;
+    top: 80px !important;
     padding: 10px !important;
+  }
+
+  .subscription-panel {
+    width: 200px !important;
+    left: 12px !important;
+    top: 50px !important;
+    bottom: auto !important;
+    padding: 10px !important;
+  }
+
+  .targeting-overlay {
+    bottom: 110px !important;
   }
 
   .click-button-area {
@@ -147,11 +159,26 @@ html, body, #root {
     padding: 8px !important;
   }
 
+  .player-panel {
+    display: none !important;
+  }
+
   .info-panel {
     width: calc(100vw - 120px) !important;
     left: 8px !important;
     bottom: 16px !important;
     max-height: 40vh;
+  }
+
+  .subscription-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 8px 16px !important;
   }
 
   .click-button-area {

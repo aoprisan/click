@@ -24,7 +24,7 @@ export default function SubscriptionPanel({ gameMode, onUpgraded }: Subscription
 
   if (gameMode === 'warrior' && !show) {
     return (
-      <div style={{
+      <div className="subscription-panel" style={{
         position: 'absolute', top: 80, left: 24, zIndex: 10,
       }}>
         <button
@@ -64,7 +64,7 @@ export default function SubscriptionPanel({ gameMode, onUpgraded }: Subscription
 
   if (gameMode === 'builder') {
     return (
-      <div className="panel" style={{
+      <div className="panel subscription-panel" style={{
         top: 80, left: 24, width: 260,
       }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -103,7 +103,7 @@ export default function SubscriptionPanel({ gameMode, onUpgraded }: Subscription
 
   // Warrior view (expanded)
   return (
-    <div className="panel" style={{
+    <div className="panel subscription-panel" style={{
       top: 80, left: 24, width: 240,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

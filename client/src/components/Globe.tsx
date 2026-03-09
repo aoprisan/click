@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import GlobeGL from 'react-globe.gl'
 import * as THREE from 'three'
 import type { City } from '../types'
@@ -17,6 +17,22 @@ interface GlobeProps {
 export default function Globe({ cities, userCityId, onCityClick, selectedCityId, pulsingCityId }: GlobeProps) {
   const globeRef = useRef<any>(null)
   const polygonsRef = useRef<any[]>([])
+  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight })
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>
+    const handleResize = () => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        setDimensions({ width: window.innerWidth, height: window.innerHeight })
+      }, 150)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(timeout)
+    }
+  }, [])
 
   // Load country polygons
   useEffect(() => {
@@ -200,8 +216,8 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       atmosphereAltitude={0.2}
       // Performance
       animateIn={true}
-      width={window.innerWidth}
-      height={window.innerHeight}
+      width={dimensions.width}
+      height={dimensions.height}
     />
   )
 }

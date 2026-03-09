@@ -284,7 +284,7 @@ export default function App() {
       )}
 
       {targetingMissile && (
-        <div style={{
+        <div className="targeting-overlay" style={{
           position: 'absolute', bottom: 160, left: '50%', transform: 'translateX(-50%)',
           zIndex: 50, background: 'rgba(248, 113, 113, 0.2)', border: '1px solid rgba(248, 113, 113, 0.4)',
           borderRadius: 8, padding: '8px 16px', fontSize: 12, color: '#f87171',

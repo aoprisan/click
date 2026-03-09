@@ -65,7 +65,7 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
         {/* Particle burst */}
         {particles.map(p => (
           <div key={p.id} style={{
-            position: 'absolute', left: 57, top: 57, width: 6, height: 6,
+            position: 'absolute', left: '50%', top: '50%', width: 6, height: 6,
             borderRadius: '50%', background: 'var(--gold)',
             pointerEvents: 'none', zIndex: 20,
             opacity: 0,
@@ -97,6 +97,8 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
               : '0 0 30px rgba(247, 201, 72, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)',
             transform: pressing ? 'scale(0.92)' : 'scale(1)',
             transition: 'transform 0.1s ease',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--font-mono)', fontSize: gameMode === 'spectator' ? 18 : 20, fontWeight: 700,
             color: '#1a1a2e',
