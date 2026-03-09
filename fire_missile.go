@@ -117,6 +117,12 @@ func (h *hub) handleFireMissile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decrement attacker's city missile stockpile
+	if _, err := tx.Exec(`UPDATE cities SET missile_stockpile = MAX(0, missile_stockpile - 1) WHERE id = (SELECT city_id FROM users WHERE id = ?)`, user.ID); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	// If this was a click missile, reset click_missile_clicks
 	if m.Source == "click" {
 		if _, err := tx.Exec(`UPDATE users SET click_missile_clicks = 0 WHERE id = ?`, user.ID); err != nil {

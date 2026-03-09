@@ -91,6 +91,10 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetMe(w http.ResponseWriter, r *http.Request) {
+	handleGetMeWithHub(nil, w, r)
+}
+
+func handleGetMeWithHub(h *hub, w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
 		http.Error(w, "not registered", http.StatusUnauthorized)
@@ -105,6 +109,9 @@ func handleGetMe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
+	}
+	if h != nil {
+		user.TodayClicks = h.getDailyClickCount(user.ID)
 	}
 	writeJSON(w, user)
 }

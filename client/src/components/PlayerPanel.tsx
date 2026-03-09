@@ -28,6 +28,7 @@ export default function PlayerPanel({ user, gameMode, personalClicks, cityName }
         <StatRow label="Population added" value={personalClicks.toLocaleString()} color="var(--gold)" />
         {user.totalKills > 0 && <StatRow label="Total kills" value={user.totalKills.toLocaleString()} color="#f87171" />}
         {user.best10s > 0 && <StatRow label="Best 10s" value={user.best10s.toLocaleString()} />}
+        {(user.todayClicks !== undefined && user.todayClicks > 0) && <StatRow label="Today" value={user.todayClicks.toLocaleString()} />}
         {user.best1day > 0 && <StatRow label="Best 1 day" value={user.best1day.toLocaleString()} />}
       </div>
     </div>

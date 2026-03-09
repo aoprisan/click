@@ -113,7 +113,9 @@ func getCityDetail(cityID string) (*CityDetail, error) {
 		return nil, err
 	}
 
-	return &CityDetail{City: c, TopContributors: contributors}, nil
+	detail := &CityDetail{City: c, TopContributors: contributors}
+	detail.DailyChangePercent = getDailyChangePercent(cityID)
+	return detail, nil
 }
 
 // getLeaderboard returns the top N cities by total clicks.
@@ -285,6 +287,15 @@ func getUserUnfiredMissiles(userID string) ([]Missile, error) {
 		missiles = append(missiles, m)
 	}
 	return missiles, rows.Err()
+}
+
+// updateCityStockpile adjusts the missile_stockpile for the city of the given user.
+func updateCityStockpile(userID string, delta int) {
+	_, err := db.Exec(`UPDATE cities SET missile_stockpile = MAX(0, missile_stockpile + ?)
+		WHERE id = (SELECT city_id FROM users WHERE id = ?)`, delta, userID)
+	if err != nil {
+		slog.Warn("updateCityStockpile failed", "error", err, "userID", userID, "delta", delta)
+	}
 }
 
 // getUserUnfiredMissileBySource returns a user's unfired missile from a specific source.

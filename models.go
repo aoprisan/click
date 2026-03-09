@@ -31,12 +31,14 @@ type User struct {
 	Best1Day               int        `json:"best1day"`
 	ClickMissileClicks     int        `json:"clickMissileClicks"`
 	LastCumulativeThreshold int       `json:"lastCumulativeThreshold"`
+	TodayClicks            int        `json:"todayClicks,omitempty"`
 }
 
 // CityDetail is the response for GET /api/cities/:id, includes top contributors.
 type CityDetail struct {
 	City
-	TopContributors []Contributor `json:"topContributors"`
+	TopContributors    []Contributor `json:"topContributors"`
+	DailyChangePercent float64       `json:"dailyChangePercent"`
 }
 
 // Contributor is a summary of a user's clicks for a city.

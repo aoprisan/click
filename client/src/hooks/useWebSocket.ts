@@ -11,6 +11,7 @@ export function useWebSocket(
   onMissileStrike?: (strike: MissileStrikeData) => void,
   onAchievement?: (data: AchievementEarnedData) => void,
   onMissileAwarded?: (data: { missileType: string; source: string }) => void,
+  onMissileUpgraded?: (data: { missileType: string; source: string }) => void,
 ) {
   const wsRef = useRef<ReconnectingWebSocket | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
@@ -24,6 +25,8 @@ export function useWebSocket(
   onAchievementRef.current = onAchievement
   const onMissileAwardedRef = useRef(onMissileAwarded)
   onMissileAwardedRef.current = onMissileAwarded
+  const onMissileUpgradedRef = useRef(onMissileUpgraded)
+  onMissileUpgradedRef.current = onMissileUpgraded
 
   useEffect(() => {
     // Connect for all visitors (spectators and authenticated users)
@@ -50,8 +53,10 @@ export function useWebSocket(
           onMissileStrikeRef.current?.(msg.data as MissileStrikeData)
         } else if (msg.type === 'achievement_earned' && msg.data) {
           onAchievementRef.current?.(msg.data as AchievementEarnedData)
-        } else if ((msg.type === 'missile_awarded' || msg.type === 'missile_upgraded') && msg.data) {
+        } else if (msg.type === 'missile_awarded' && msg.data) {
           onMissileAwardedRef.current?.(msg.data as unknown as { missileType: string; source: string })
+        } else if (msg.type === 'missile_upgraded' && msg.data) {
+          onMissileUpgradedRef.current?.(msg.data as unknown as { missileType: string; source: string })
         }
       } catch {
         // ignore malformed messages

@@ -14,6 +14,7 @@ export interface City {
 
 export interface CityDetail extends City {
   topContributors: Contributor[]
+  dailyChangePercent: number
 }
 
 export interface Contributor {
@@ -32,6 +33,7 @@ export interface User {
   best1day: number
   clickMissileClicks: number
   lastCumulativeThreshold: number
+  todayClicks?: number
 }
 
 export type GameMode = 'spectator' | 'builder' | 'warrior'

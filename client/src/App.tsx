@@ -106,11 +106,16 @@ export default function App() {
     }
   }, [user, addToast])
 
+  const citiesRef = useRef(cities)
+  citiesRef.current = cities
+
   const onMissileStrike = useCallback((strike: MissileStrikeData) => {
     if (user && strike.targetCityId === user.cityId) {
-      addToast(`${strike.attackerName} hit your city with ${strike.missileType}! -${strike.damage.toLocaleString()}`, 'missile_incoming')
+      addToast(`${strike.attackerName} launched ${strike.missileType} at your city! -${strike.damage.toLocaleString()}`, 'missile_incoming')
     } else {
-      addToast(`${strike.attackerName} fired ${strike.missileType}! -${strike.damage.toLocaleString()}`, 'missile_strike')
+      const targetCity = citiesRef.current.find(c => c.id === strike.targetCityId)
+      const targetName = targetCity ? targetCity.name : 'unknown'
+      addToast(`${strike.attackerName} launched ${strike.missileType}! -${strike.damage.toLocaleString()} to ${targetName}`, 'missile_strike')
     }
     setMissileRefreshKey(k => k + 1)
   }, [user, addToast])
@@ -129,7 +134,12 @@ export default function App() {
     setMissileRefreshKey(k => k + 1)
   }, [addToast])
 
-  const ws = useWebSocket(user, onCityUpdate, onCityClick, onMissileStrike, onAchievement, onMissileAwarded)
+  const onMissileUpgraded = useCallback((data: { missileType: string; source: string }) => {
+    addToast(`Missile upgraded to ${data.missileType}!`, 'missile_awarded')
+    setMissileRefreshKey(k => k + 1)
+  }, [addToast])
+
+  const ws = useWebSocket(user, onCityUpdate, onCityClick, onMissileStrike, onAchievement, onMissileAwarded, onMissileUpgraded)
 
   const { handleClick, personalClicks, pendingClicks, rateLimited, multiplier, reconcile } = useClickHandler(ws, user, () => {
     // Optimistic update for own clicks

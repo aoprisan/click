@@ -57,6 +57,8 @@ func (h *hub) checkClickMissiles(c *client, user *User) {
 			return
 		}
 
+		updateCityStockpile(user.ID, +1)
+
 		h.sendToClient(WSOutgoing{
 			Type: "missile_awarded",
 			Data: map[string]interface{}{

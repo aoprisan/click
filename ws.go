@@ -131,6 +131,18 @@ func (h *hub) sendToClients(msg WSOutgoing, filter func(*client) bool) {
 	}
 }
 
+// getDailyClickCount returns the current day's click count for a user from the in-memory tracker.
+func (h *hub) getDailyClickCount(userID string) int {
+	today := time.Now().UTC().Format("2006-01-02")
+	h.achMu.Lock()
+	defer h.achMu.Unlock()
+	dc := h.dailyClicks[userID]
+	if dc == nil || dc.date != today {
+		return 0
+	}
+	return dc.count
+}
+
 func (h *hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Check for auth cookie - spectators don't need one
 	var user *User

@@ -14,6 +14,7 @@ interface InfoPanelProps {
 
 export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelProps) {
   const [contributors, setContributors] = useState<Contributor[]>([])
+  const [dailyChangePercent, setDailyChangePercent] = useState<number>(0)
   const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const lastCityId = useRef(city.id)
 
@@ -25,7 +26,10 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
 
     const doFetch = () => {
       fetchCityDetail(city.id).then(detail => {
-        if (!cancelled) setContributors(detail.topContributors)
+        if (!cancelled) {
+          setContributors(detail.topContributors)
+          setDailyChangePercent(detail.dailyChangePercent)
+        }
       }).catch(() => {})
     }
 
@@ -83,6 +87,18 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
             {city.totalClicks.toLocaleString()}
           </span>
         </div>
+
+        {dailyChangePercent !== 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Daily change</span>
+            <span className="mono" style={{
+              fontSize: 14,
+              color: dailyChangePercent > 0 ? '#4ade80' : '#f87171',
+            }}>
+              {dailyChangePercent > 0 ? '+' : ''}{dailyChangePercent.toFixed(1)}%
+            </span>
+          </div>
+        )}
 
         {city.highestEverPopulation > 0 && city.highestEverPopulation !== city.totalClicks && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>

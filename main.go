@@ -54,7 +54,9 @@ func main() {
 		r.Get("/leaderboard", handleGetLeaderboard)
 		r.Get("/stats", handleGetStats)
 		r.Post("/register", handleRegister)
-		r.Get("/me", handleGetMe)
+		r.Get("/me", func(w http.ResponseWriter, r *http.Request) {
+			handleGetMeWithHub(wsHub, w, r)
+		})
 		r.Get("/me/missiles", handleGetMyMissiles)
 		r.Post("/missiles/{id}/fire", wsHub.handleFireMissile)
 		r.Post("/subscribe", handleSubscribe)
