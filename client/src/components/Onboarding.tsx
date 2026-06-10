@@ -41,55 +41,35 @@ export default function Onboarding({ cities, onRegistered, fading }: OnboardingP
   }
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 100,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
-      opacity: fading ? 0 : 1,
-      transition: 'opacity 0.4s ease-out',
-    }}>
-      <div style={{
-        background: 'var(--bg-panel)', border: '1px solid var(--border)',
-        borderRadius: 16, padding: 32, width: 400, maxWidth: '90vw',
-        maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16,
-      }}>
-        <h2 style={{ fontFamily: 'var(--font-mono)', color: 'var(--gold)', fontSize: 18, textAlign: 'center' }}>
-          GLOBAL CONFLICT
-        </h2>
+    <div className="onboard-overlay" style={{ opacity: fading ? 0 : 1 }}>
+      <div className="onboard-card bracketed">
+        <div>
+          <h2 className="onboard-title">GLOBAL CONFLICT</h2>
+          <div className="panel-label" style={{ textAlign: 'center', marginTop: 4 }}>
+            Enlistment Terminal
+          </div>
+        </div>
 
         {step === 'city' && (
           <>
-            <p style={{ color: 'var(--text-dim)', textAlign: 'center', fontSize: 14 }}>
-              Pick your city
-            </p>
+            <p className="onboard-sub">Pick your city</p>
             <input
               type="text"
+              className="field"
               placeholder="Search cities..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               autoFocus
-              style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: '10px 14px', color: 'var(--text)',
-                fontFamily: 'var(--font-sans)', fontSize: 14, outline: 'none',
-              }}
             />
-            <div style={{ overflowY: 'auto', maxHeight: 300, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div className="city-list">
               {filtered.map(city => (
                 <button
                   key={city.id}
+                  className="city-option"
+                  style={city.id === selectedCityId ? { background: 'rgba(255,176,0,0.1)', borderLeftColor: 'var(--amber)' } : undefined}
                   onClick={() => { setSelectedCityId(city.id); setStep('name') }}
-                  style={{
-                    background: city.id === selectedCityId ? 'rgba(247,201,72,0.15)' : 'transparent',
-                    border: 'none', borderRadius: 6, padding: '8px 12px',
-                    color: 'var(--text)', cursor: 'pointer', textAlign: 'left',
-                    fontFamily: 'var(--font-sans)', fontSize: 14,
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = city.id === selectedCityId ? 'rgba(247,201,72,0.15)' : 'transparent')}
                 >
-                  {city.name}, <span style={{ color: 'var(--text-dim)' }}>{city.country}</span>
+                  {city.name}, <span className="dim">{city.country}</span>
                 </button>
               ))}
             </div>
@@ -98,44 +78,29 @@ export default function Onboarding({ cities, onRegistered, fading }: OnboardingP
 
         {step === 'name' && (
           <>
-            <p style={{ color: 'var(--text-dim)', textAlign: 'center', fontSize: 14 }}>
-              Representing <span style={{ color: 'var(--gold)' }}>{selectedCity?.name}, {selectedCity?.country}</span>
+            <p className="onboard-sub">
+              Representing <span className="amber">{selectedCity?.name}, {selectedCity?.country}</span>
             </p>
             <input
               type="text"
+              className="field"
               placeholder="Your display name"
               value={name}
               onChange={e => setName(e.target.value)}
               maxLength={30}
               autoFocus
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-                borderRadius: 8, padding: '10px 14px', color: 'var(--text)',
-                fontFamily: 'var(--font-sans)', fontSize: 14, outline: 'none',
-              }}
             />
-            {error && <p style={{ color: '#ff6b6b', fontSize: 13 }}>{error}</p>}
+            {error && <p className="form-error">{error}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => setStep('city')}
-                style={{
-                  flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-                  borderRadius: 8, padding: '10px 0', color: 'var(--text-dim)',
-                  cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 14,
-                }}
-              >
+              <button className="btn-ghost" style={{ flex: 1, padding: '10px 0' }} onClick={() => setStep('city')}>
                 Back
               </button>
               <button
+                className="btn"
+                style={{ flex: 2 }}
                 onClick={handleSubmit}
                 disabled={!name.trim() || submitting}
-                style={{
-                  flex: 2, background: 'var(--gold)', border: 'none', borderRadius: 8,
-                  padding: '10px 0', color: '#000', cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14,
-                  opacity: !name.trim() || submitting ? 0.5 : 1,
-                }}
               >
                 {submitting ? 'Joining...' : 'Join'}
               </button>

@@ -28,15 +28,14 @@ export default class ErrorBoundary extends Component<Props, State> {
           justifyContent: 'center', height: '100vh', color: 'var(--text)',
           background: 'var(--bg)', gap: 16,
         }}>
-          <span style={{ fontSize: 18, fontWeight: 600 }}>Something went wrong</span>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '8px 20px', borderRadius: 6, border: 'none',
-              background: 'var(--gold)', color: '#000', cursor: 'pointer',
-              fontWeight: 600, fontSize: 14,
-            }}
-          >
+          <span style={{
+            fontFamily: 'var(--font-stencil)', fontSize: 16, letterSpacing: '0.2em',
+            color: 'var(--red)', textTransform: 'uppercase',
+          }}>
+            System Fault
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--dim)' }}>Something went wrong</span>
+          <button className="btn" onClick={() => window.location.reload()}>
             Reload
           </button>
         </div>

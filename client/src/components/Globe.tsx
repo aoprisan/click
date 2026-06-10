@@ -76,17 +76,17 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
           if (globeMat) return
           if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshPhongMaterial && obj.geometry instanceof THREE.SphereGeometry) {
             globeMat = obj.material
-            globeMat.emissive = new THREE.Color(0x061428)
+            globeMat.emissive = new THREE.Color(0x06140a)
             globeMat.emissiveIntensity = 0.4
           }
         })
       }
 
       if (globeMat) {
-        const intensity = 0.3 + 0.15 * Math.sin(t * 0.4)
+        const intensity = 0.2 + 0.08 * Math.sin(t * 0.4)
         globeMat.emissiveIntensity = intensity
-        const hue = 0.58 + 0.03 * Math.sin(t * 0.25)
-        globeMat.emissive.setHSL(hue, 0.6, 0.12)
+        const hue = 0.34 + 0.03 * Math.sin(t * 0.25)
+        globeMat.emissive.setHSL(hue, 0.45, 0.06)
       }
 
       // Landmass glow: find polygon meshes and set emissive
@@ -98,7 +98,7 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
               if (mat instanceof THREE.MeshLambertMaterial && mat.color) {
                 const c = mat.color
                 if (c.r < 0.2 && c.g < 0.2 && c.b > 0.15) {
-                  mat.emissive = new THREE.Color(0x1a1a40)
+                  mat.emissive = new THREE.Color(0x1c3214)
                   mat.emissiveIntensity = 0.5
                 }
               }
@@ -144,9 +144,9 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
 
   const pointColor = useCallback((d: any) => {
     const city = d as City
-    if (city.id === userCityId) return '#f7c948'
-    if (city.id === selectedCityId) return '#ff6b6b'
-    return city.totalClicks > 0 ? '#f7c94888' : '#f7c94833'
+    if (city.id === userCityId) return '#ffb000'
+    if (city.id === selectedCityId) return '#ff4536'
+    return city.totalClicks > 0 ? '#4be37a99' : '#4be37a30'
   }, [userCityId, selectedCityId])
 
   const pointRadius = useCallback((d: any) => {
@@ -166,9 +166,9 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
 
   const pointLabel = useCallback((d: any) => {
     const city = d as City
-    return `<div style="font-family: Outfit, sans-serif; font-size: 13px; color: #e8e8f0; text-align: center;">
+    return `<div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #d4dcc6; text-align: center; background: rgba(8,11,7,0.85); border: 1px solid rgba(255,176,0,0.3); padding: 4px 10px;">
       <b>${city.name}</b>, ${city.country}<br/>
-      <span style="font-family: 'Space Mono', monospace; color: #f7c948;">${city.totalClicks.toLocaleString()} clicks</span>
+      <span style="color: #ffb000;">${city.totalClicks.toLocaleString()} clicks</span>
     </div>`
   }, [])
 
@@ -189,9 +189,9 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
       // Country borders
       polygonsData={polygonsRef.current}
-      polygonCapColor={() => 'rgba(35, 35, 65, 0.65)'}
-      polygonSideColor={() => 'rgba(110, 110, 160, 0.15)'}
-      polygonStrokeColor={() => 'rgba(200, 200, 255, 0.2)'}
+      polygonCapColor={() => 'rgba(28, 42, 18, 0.55)'}
+      polygonSideColor={() => 'rgba(120, 160, 80, 0.12)'}
+      polygonStrokeColor={() => 'rgba(180, 220, 140, 0.28)'}
       polygonAltitude={0.005}
       // City points
       pointsData={cities}
@@ -207,13 +207,13 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
       ringsData={ringsData}
       ringLat="lat"
       ringLng="lng"
-      ringColor={() => '#f7c948'}
+      ringColor={() => '#ffb000'}
       ringMaxRadius={3}
       ringPropagationSpeed={2}
       ringRepeatPeriod={800}
       // Atmosphere
-      atmosphereColor="#3a228a"
-      atmosphereAltitude={0.2}
+      atmosphereColor="#2e7d4f"
+      atmosphereAltitude={0.18}
       // Performance
       animateIn={true}
       width={dimensions.width}

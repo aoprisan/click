@@ -25,54 +25,25 @@ interface ToastSystemProps {
   toasts: Toast[]
 }
 
+const TOAST_TAGS: Record<Toast['type'], string> = {
+  click: 'POP',
+  achievement: 'ACHV',
+  missile_awarded: 'ARMD',
+  missile_strike: 'STRK',
+  missile_incoming: 'ALRT',
+}
+
 export default function ToastSystem({ toasts }: ToastSystemProps) {
   if (toasts.length === 0) return null
 
   return (
-    <div style={{
-      position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
-      zIndex: 50, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center',
-    }}>
+    <div className="toast-stack">
       {toasts.map(toast => (
-        <div key={toast.id} style={{
-          background: getToastBg(toast.type),
-          border: `1px solid ${getToastBorder(toast.type)}`,
-          borderRadius: 8, padding: '8px 16px',
-          fontSize: 12, color: 'var(--text)',
-          fontFamily: 'var(--font-sans)',
-          animation: 'toastIn 0.3s ease-out',
-          backdropFilter: 'blur(8px)',
-          maxWidth: 300, textAlign: 'center',
-        }}>
-          {toast.message}
+        <div key={toast.id} className={`toast toast--${toast.type}`}>
+          <span className="toast-tag">{TOAST_TAGS[toast.type]}</span>
+          <span>{toast.message}</span>
         </div>
       ))}
-      <style>{`
-        @keyframes toastIn {
-          0% { transform: translateY(-10px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   )
-}
-
-function getToastBg(type: Toast['type']): string {
-  switch (type) {
-    case 'achievement': return 'rgba(247, 201, 72, 0.15)'
-    case 'missile_awarded': return 'rgba(96, 165, 250, 0.15)'
-    case 'missile_strike': return 'rgba(248, 113, 113, 0.15)'
-    case 'missile_incoming': return 'rgba(248, 113, 113, 0.2)'
-    default: return 'var(--bg-panel)'
-  }
-}
-
-function getToastBorder(type: Toast['type']): string {
-  switch (type) {
-    case 'achievement': return 'rgba(247, 201, 72, 0.3)'
-    case 'missile_awarded': return 'rgba(96, 165, 250, 0.3)'
-    case 'missile_strike': return 'rgba(248, 113, 113, 0.3)'
-    case 'missile_incoming': return 'rgba(248, 113, 113, 0.4)'
-    default: return 'var(--border)'
-  }
 }

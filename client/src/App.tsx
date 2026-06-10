@@ -141,7 +141,7 @@ export default function App() {
 
   const ws = useWebSocket(user, onCityUpdate, onCityClick, onMissileStrike, onAchievement, onMissileAwarded, onMissileUpgraded)
 
-  const { handleClick, personalClicks, pendingClicks, rateLimited, multiplier, reconcile } = useClickHandler(ws, user, () => {
+  const { handleClick, personalClicks, rateLimited, multiplier, reconcile } = useClickHandler(ws, user, () => {
     // Optimistic update for own clicks
     if (user) {
       const mult = gameMode === 'warrior' ? 2 : 1
@@ -209,8 +209,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--gold)' }}>
-        Loading...
+      <div className="boot-screen">
+        Establishing uplink
       </div>
     )
   }
@@ -227,7 +227,10 @@ export default function App() {
         />
       </ErrorBoundary>
 
-      <div className="logo">GLOBAL CONFLICT</div>
+      <div className="logo">
+        <span className="logo-main">GLOBAL CONFLICT</span>
+        <span className="logo-sub">Tactical Command · Live</span>
+      </div>
 
       <GlobalDataPanel stats={globalStats} totalPopulation={totalGlobalClicks} />
 
@@ -253,16 +256,18 @@ export default function App() {
         />
       )}
 
-      <MissilePanel
-        gameMode={gameMode}
-        onFireMissile={handleFireMissile}
-        refreshKey={missileRefreshKey}
-      />
+      <div className="hud-left">
+        <SubscriptionPanel
+          gameMode={gameMode}
+          onUpgraded={handleSubscriptionUpgraded}
+        />
 
-      <SubscriptionPanel
-        gameMode={gameMode}
-        onUpgraded={handleSubscriptionUpgraded}
-      />
+        <MissilePanel
+          gameMode={gameMode}
+          onFireMissile={handleFireMissile}
+          refreshKey={missileRefreshKey}
+        />
+      </div>
 
       <ClickButton
         onClick={gameMode === 'spectator' ? handleSpectatorLogin : handleClick}
@@ -284,20 +289,9 @@ export default function App() {
       )}
 
       {targetingMissile && (
-        <div className="targeting-overlay" style={{
-          position: 'absolute', bottom: 160, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 50, background: 'rgba(248, 113, 113, 0.2)', border: '1px solid rgba(248, 113, 113, 0.4)',
-          borderRadius: 8, padding: '8px 16px', fontSize: 12, color: '#f87171',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
+        <div className="targeting-overlay">
           <span>Targeting: {targetingMissile.missileType} ({targetingMissile.rangeKm}km)</span>
-          <button
-            onClick={() => setTargetingMissile(null)}
-            style={{
-              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: 4, padding: '2px 8px', color: 'var(--text)', cursor: 'pointer', fontSize: 11,
-            }}
-          >
+          <button className="btn-ghost" onClick={() => setTargetingMissile(null)}>
             Cancel
           </button>
         </div>

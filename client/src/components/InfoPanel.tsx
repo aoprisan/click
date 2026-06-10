@@ -53,121 +53,97 @@ export default function InfoPanel({ city, isHome, userClicks, rank }: InfoPanelP
   }, [city.id, city.totalClicks])
 
   return (
-    <div className="panel info-panel" style={{
-      bottom: 32, left: 24, width: 280,
-    }}>
+    <div className="panel bracketed info-panel">
+      <div className="panel-label" style={{ marginBottom: 10 }}>City Dossier</div>
+
       <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
           <span style={{ fontWeight: 600, fontSize: 16 }}>{city.name}</span>
-          {isHome && (
-            <span style={{
-              fontSize: 10, background: 'var(--gold)', color: '#000',
-              padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-            }}>
-              HOME
-            </span>
-          )}
+          {isHome && <span className="home-badge">HOME</span>}
         </div>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{city.country}</span>
+        <span style={{ fontSize: 12, color: 'var(--dim)' }}>{city.country}</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         {rank !== undefined && rank > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Rank</span>
-            <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
-              #{rank}
-            </span>
+          <div className="stat-row">
+            <span className="stat-key">Rank</span>
+            <span className="stat-val stat-val--amber">#{rank}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Population</span>
-          <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
-            {city.totalClicks.toLocaleString()}
-          </span>
+        <div className="stat-row">
+          <span className="stat-key">Population</span>
+          <span className="stat-val stat-val--amber">{city.totalClicks.toLocaleString()}</span>
         </div>
 
         {dailyChangePercent !== 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Daily change</span>
-            <span className="mono" style={{
-              fontSize: 14,
-              color: dailyChangePercent > 0 ? '#4ade80' : '#f87171',
-            }}>
+          <div className="stat-row">
+            <span className="stat-key">Daily change</span>
+            <span className={`stat-val ${dailyChangePercent > 0 ? 'stat-val--green' : 'stat-val--red'}`}>
               {dailyChangePercent > 0 ? '+' : ''}{dailyChangePercent.toFixed(1)}%
             </span>
           </div>
         )}
 
         {city.highestEverPopulation > 0 && city.highestEverPopulation !== city.totalClicks && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Highest ever</span>
-            <span className="mono" style={{ fontSize: 14 }}>
-              {city.highestEverPopulation.toLocaleString()}
-            </span>
+          <div className="stat-row">
+            <span className="stat-key">Highest ever</span>
+            <span className="stat-val">{city.highestEverPopulation.toLocaleString()}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Citizens</span>
-          <span className="mono" style={{ fontSize: 14 }}>
-            {city.contributorCount.toLocaleString()}
-          </span>
+        <div className="stat-row">
+          <span className="stat-key">Citizens</span>
+          <span className="stat-val">{city.contributorCount.toLocaleString()}</span>
         </div>
 
         {city.missileStockpile > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Missile stockpile</span>
-            <span className="mono" style={{ fontSize: 14, color: '#f87171' }}>
-              {city.missileStockpile}
-            </span>
+          <div className="stat-row">
+            <span className="stat-key">Missile stockpile</span>
+            <span className="stat-val stat-val--red">{city.missileStockpile}</span>
           </div>
         )}
 
         {city.totalDead > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Total dead</span>
-            <span className="mono" style={{ fontSize: 14, color: '#f87171' }}>
-              {city.totalDead.toLocaleString()}
-            </span>
+          <div className="stat-row">
+            <span className="stat-key">Total dead</span>
+            <span className="stat-val stat-val--red">{city.totalDead.toLocaleString()}</span>
           </div>
         )}
 
         {userClicks !== undefined && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Your contribution</span>
-            <span className="mono" style={{ fontSize: 14, color: 'var(--gold)' }}>
-              {userClicks.toLocaleString()}
-            </span>
+          <div className="stat-row">
+            <span className="stat-key">Your contribution</span>
+            <span className="stat-val stat-val--amber">{userClicks.toLocaleString()}</span>
           </div>
         )}
       </div>
 
       {contributors.length > 0 && (
-        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Top Citizens
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+        <>
+          <hr className="rule" />
+          <span className="panel-label">Top Citizens</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
             {contributors.map((c, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+              <div key={i} className="stat-row">
+                <span style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 170 }}>
                   {c.name}
                 </span>
-                <span className="mono" style={{ color: 'var(--text-dim)', flexShrink: 0, marginLeft: 8 }}>
+                <span className="stat-val" style={{ color: 'var(--dim)', fontSize: 12 }}>
                   {c.totalClicks.toLocaleString()}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {city.totalClicks > 0 && (
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+        <>
+          <hr className="rule" />
           <BuildingViz totalClicks={city.totalClicks} />
-        </div>
+        </>
       )}
     </div>
   )

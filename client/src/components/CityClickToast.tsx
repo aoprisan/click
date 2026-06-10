@@ -29,22 +29,16 @@ export default function CityClickToast({ toasts }: { toasts: Toast[] }) {
     }}>
       {toasts.map(t => (
         <div key={t.id} style={{
-          fontSize: 12, fontFamily: 'var(--font-sans)',
-          color: 'var(--gold)', background: 'rgba(10, 10, 18, 0.7)',
-          padding: '4px 12px', borderRadius: 6,
+          fontSize: 12, fontFamily: 'var(--font-mono)',
+          color: 'var(--amber)', background: 'rgba(8, 11, 7, 0.85)',
+          border: '1px solid var(--line-dim)',
+          padding: '4px 12px',
           backdropFilter: 'blur(6px)',
           animation: 'toastFloat 2s ease-out forwards',
         }}>
           <b>{t.userName}</b> clicked!
         </div>
       ))}
-      <style>{`
-        @keyframes toastFloat {
-          0% { opacity: 1; transform: translateY(0); }
-          70% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(-20px); }
-        }
-      `}</style>
     </div>
   )
 }

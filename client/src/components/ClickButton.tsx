@@ -23,7 +23,7 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
 
   const handleClick = useCallback(() => {
     if (gameMode === 'spectator') {
-      // Spectator click could trigger login flow
+      // Spectator click triggers the login flow
       onClick()
       return
     }
@@ -51,93 +51,39 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
   const buttonLabel = gameMode === 'spectator' ? 'LOGIN' : `GROW +${multiplier}`
 
   return (
-    <div className="click-button-area" style={{
-      position: 'absolute', bottom: 32, right: 32, zIndex: 10,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-    }}>
+    <div className={`click-button-area mode-${gameMode}`}>
       {cityName && gameMode !== 'spectator' && (
-        <span style={{ fontSize: 12, color: 'var(--text-dim)', fontFamily: 'var(--font-sans)' }}>
-          {cityName}
-        </span>
+        <span className="launch-city">{cityName}</span>
       )}
 
-      <div style={{ position: 'relative' }}>
-        {/* Particle burst */}
+      <div className="dial">
+        <div className="dial-ticks" />
+        <div className="dial-sweep" />
+
         {particles.map(p => (
-          <div key={p.id} style={{
-            position: 'absolute', left: '50%', top: '50%', width: 6, height: 6,
-            borderRadius: '50%', background: 'var(--gold)',
-            pointerEvents: 'none', zIndex: 20,
-            opacity: 0,
-            animation: 'particleFade 0.5s ease-out forwards',
-            '--dx': `${p.dx}px`, '--dy': `${p.dy}px`,
-          } as React.CSSProperties} />
+          <div
+            key={p.id}
+            className="particle"
+            style={{ '--dx': `${p.dx}px`, '--dy': `${p.dy}px` } as React.CSSProperties}
+          />
         ))}
 
-        {/* Ripple effects */}
         {ripples.map(id => (
-          <div key={id} style={{
-            position: 'absolute', inset: -10,
-            borderRadius: '50%', border: '2px solid var(--gold)',
-            animation: 'ripple 0.6s ease-out forwards',
-            pointerEvents: 'none',
-          }} />
+          <div key={id} className="ripple" />
         ))}
 
-        <button
-          onClick={handleClick}
-          style={{
-            width: 120, height: 120, borderRadius: '50%',
-            background: gameMode === 'spectator'
-              ? 'radial-gradient(circle at 35% 35%, #93c5fd, #60a5fa, #3b82f6)'
-              : 'radial-gradient(circle at 35% 35%, #ffd866, var(--gold), var(--gold-dim))',
-            border: 'none', cursor: 'pointer',
-            boxShadow: gameMode === 'spectator'
-              ? '0 0 30px rgba(96, 165, 250, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)'
-              : '0 0 30px rgba(247, 201, 72, 0.3), inset 0 -3px 6px rgba(0,0,0,0.2)',
-            transform: pressing ? 'scale(0.92)' : 'scale(1)',
-            transition: 'transform 0.1s ease',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-mono)', fontSize: gameMode === 'spectator' ? 18 : 20, fontWeight: 700,
-            color: '#1a1a2e',
-          }}
-        >
+        <button className={`launch-btn${pressing ? ' pressing' : ''}`} onClick={handleClick}>
           {buttonLabel}
         </button>
       </div>
 
       {gameMode !== 'spectator' && (
-        <span className="mono" style={{ fontSize: 16, color: 'var(--gold)' }}>
-          {personalClicks.toLocaleString()}
-        </span>
+        <span className="launch-count">{personalClicks.toLocaleString()}</span>
       )}
 
       {rateLimited && (
-        <span style={{
-          fontSize: 11, color: '#ff6b6b', fontFamily: 'var(--font-sans)',
-          animation: 'fadeInOut 2s ease-out forwards',
-        }}>
-          Slow down!
-        </span>
+        <span className="rate-warn">Slow down!</span>
       )}
-
-      <style>{`
-        @keyframes ripple {
-          0% { transform: scale(1); opacity: 0.6; }
-          100% { transform: scale(1.8); opacity: 0; }
-        }
-        @keyframes particleFade {
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
-        }
-        @keyframes fadeInOut {
-          0% { opacity: 1; }
-          70% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -2,12 +2,12 @@ interface BuildingVizProps {
   totalClicks: number
 }
 
-// Tier thresholds: how many clicks per block
+// Tier thresholds: how many clicks per block (phosphor-amber ramp, dim → bright)
 const TIERS = [
-  { threshold: 10_000, color: '#8B7355' },   // Tier 1: darkest
-  { threshold: 25_000, color: '#A0896B' },   // Tier 2: medium-dark
-  { threshold: 50_000, color: '#C4A882' },   // Tier 3: light
-  { threshold: 100_000, color: '#E8D5B0' },  // Tier 4: lightest
+  { threshold: 10_000, color: '#523a08' },
+  { threshold: 25_000, color: '#8a610a' },
+  { threshold: 50_000, color: '#c2880c' },
+  { threshold: 100_000, color: '#ffb000' },
 ]
 
 const BLOCK_W = 22
@@ -92,7 +92,7 @@ export default function BuildingViz({ totalClicks }: BuildingVizProps) {
           width={BLOCK_W}
           height={BLOCK_H}
           fill={block.color}
-          rx={2}
+          rx={0}
         />
       ))}
     </svg>
