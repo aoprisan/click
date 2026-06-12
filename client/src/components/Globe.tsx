@@ -12,9 +12,10 @@ interface GlobeProps {
   onCityClick: (city: City) => void
   selectedCityId: string | null
   pulsingCityId: string | null
+  autoRotate?: boolean
 }
 
-export default function Globe({ cities, userCityId, onCityClick, selectedCityId, pulsingCityId }: GlobeProps) {
+export default function Globe({ cities, userCityId, onCityClick, selectedCityId, pulsingCityId, autoRotate = false }: GlobeProps) {
   const globeRef = useRef<any>(null)
   const polygonsRef = useRef<any[]>([])
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight })
@@ -52,11 +53,11 @@ export default function Globe({ cities, userCityId, onCityClick, selectedCityId,
     if (!globeRef.current) return
     const controls = globeRef.current.controls()
     if (controls) {
-      controls.autoRotate = true
+      controls.autoRotate = autoRotate
       controls.autoRotateSpeed = 0.4
       controls.enableDamping = false // No inertia/throw effect on drag
     }
-  }, [])
+  }, [autoRotate])
 
   // Ocean animated gradient + landmass glow
   useEffect(() => {
