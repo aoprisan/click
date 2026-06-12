@@ -1,0 +1,197 @@
+Country,Resource 1,Resource 2,Resource 3
+Algeria,Natural Gas,Crude Oil,Chemical Minerals
+Angola,Crude Oil,Precious Metals,Timber
+Benin,Cotton,Grain,Livestock
+Botswana,Precious Metals,Livestock,Rare Earth Elements
+Burkina Faso,Precious Metals,Cotton,Livestock
+Burundi,Coffee & Cocoa,Rare Earth Elements,Grain
+Cabo Verde,Fish,Silicon & Silica,Grain
+Cameroon,Timber,Coffee & Cocoa,Bauxite
+Central African Republic,Timber,Precious Metals,Grain
+Chad,Crude Oil,Livestock,Chemical Minerals
+Comoros,Coffee & Cocoa,Fish,Grain
+Democratic Republic of the Congo,Lithium & Cobalt,Copper,Timber
+Republic of the Congo,Crude Oil,Timber,Natural Gas
+Djibouti,Fish,Chemical Minerals,Livestock
+Egypt,Natural Gas,Cotton,Silicon & Silica
+Equatorial Guinea,Crude Oil,Natural Gas,Timber
+Eritrea,Copper,Precious Metals,Fish
+Eswatini,Sugar,Timber,Coal
+Ethiopia,Coffee & Cocoa,Livestock,Grain
+Gabon,Crude Oil,Timber,Iron Ore
+Gambia,Fish,Grain,Cotton
+Ghana,Precious Metals,Coffee & Cocoa,Bauxite
+Guinea,Bauxite,Iron Ore,Precious Metals
+Guinea-Bissau,Fish,Timber,Grain
+Ivory Coast,Coffee & Cocoa,Rubber,Timber
+Kenya,Coffee & Cocoa,Livestock,Rare Earth Elements
+Lesotho,Precious Metals,Livestock,Water Supply
+Liberia,Iron Ore,Rubber,Timber
+Libya,Crude Oil,Natural Gas,Chemical Minerals
+Madagascar,Coffee & Cocoa,Rare Earth Elements,Fish
+Malawi,Uranium,Grain,Sugar
+Mali,Precious Metals,Cotton,Livestock
+Mauritania,Iron Ore,Fish,Livestock
+Mauritius,Sugar,Fish,Silicon & Silica
+Morocco,Chemical Minerals,Fish,Silicon & Silica
+Mozambique,Natural Gas,Coal,Bauxite
+Namibia,Uranium,Precious Metals,Fish
+Niger,Uranium,Livestock,Grain
+Nigeria,Crude Oil,Natural Gas,Grain
+Rwanda,Coffee & Cocoa,Rare Earth Elements,Livestock
+Sao Tome and Principe,Coffee & Cocoa,Fish,Timber
+Senegal,Fish,Chemical Minerals,Cotton
+Seychelles,Fish,Silicon & Silica,Sugar
+Sierra Leone,Precious Metals,Bauxite,Iron Ore
+Somalia,Livestock,Fish,Chemical Minerals
+South Africa,Precious Metals,Coal,Iron Ore
+South Sudan,Crude Oil,Timber,Livestock
+Sudan,Precious Metals,Livestock,Grain
+Tanzania,Precious Metals,Coffee & Cocoa,Coal
+Togo,Chemical Minerals,Cotton,Coffee & Cocoa
+Tunisia,Chemical Minerals,Crude Oil,Grain
+Uganda,Coffee & Cocoa,Grain,Copper
+Zambia,Copper,Precious Metals,Grain
+Zimbabwe,Precious Metals,Lithium & Cobalt,Coal
+Antigua and Barbuda,Fish,Sugar,Silicon & Silica
+Argentina,Grain,Lithium & Cobalt,Livestock
+Bahamas,Fish,Chemical Minerals,Silicon & Silica
+Barbados,Sugar,Fish,Natural Gas
+Belize,Timber,Sugar,Fish
+Bolivia,Lithium & Cobalt,Natural Gas,Copper
+Brazil,Iron Ore,Grain,Coffee & Cocoa
+Canada,Timber,Crude Oil,Uranium
+Chile,Copper,Lithium & Cobalt,Fish
+Colombia,Coffee & Cocoa,Crude Oil,Coal
+Costa Rica,Coffee & Cocoa,Timber,Rubber
+Cuba,Sugar,Copper,Rare Earth Elements
+Dominica,Sugar,Timber,Fish
+Dominican Republic,Precious Metals,Sugar,Coffee & Cocoa
+Ecuador,Crude Oil,Coffee & Cocoa,Fish
+El Salvador,Coffee & Cocoa,Sugar,Grain
+Grenada,Coffee & Cocoa,Sugar,Fish
+Guatemala,Coffee & Cocoa,Sugar,Timber
+Guyana,Crude Oil,Bauxite,Timber
+Haiti,Sugar,Coffee & Cocoa,Grain
+Honduras,Coffee & Cocoa,Timber,Fish
+Jamaica,Bauxite,Sugar,Coffee & Cocoa
+Mexico,Crude Oil,Precious Metals,Copper
+Nicaragua,Coffee & Cocoa,Precious Metals,Livestock
+Panama,Copper,Fish,Timber
+Paraguay,Grain,Livestock,Timber
+Peru,Copper,Precious Metals,Fish
+Saint Kitts and Nevis,Sugar,Fish,Grain
+Saint Lucia,Sugar,Fish,Coffee & Cocoa
+Saint Vincent and the Grenadines,Sugar,Fish,Grain
+Suriname,Precious Metals,Bauxite,Timber
+Trinidad and Tobago,Natural Gas,Crude Oil,Chemical Minerals
+United States,Grain,Natural Gas,Crude Oil
+Uruguay,Livestock,Grain,Timber
+Venezuela,Crude Oil,Natural Gas,Iron Ore
+Afghanistan,Rare Earth Elements,Lithium & Cobalt,Livestock
+Armenia,Copper,Precious Metals,Livestock
+Azerbaijan,Crude Oil,Natural Gas,Cotton
+Bahrain,Crude Oil,Natural Gas,Fish
+Bangladesh,Cotton,Natural Gas,Fish
+Bhutan,Timber,Grain,Precious Metals
+Brunei,Crude Oil,Natural Gas,Fish
+Cambodia,Grain,Rubber,Timber
+China,Rare Earth Elements,Coal,Silicon & Silica
+Cyprus,Copper,Fish,Chemical Minerals
+Georgia,Copper,Chemical Minerals,Grain
+India,Grain,Coal,Iron Ore
+Indonesia,Coal,Rubber,Natural Gas
+Iran,Crude Oil,Natural Gas,Iron Ore
+Iraq,Crude Oil,Natural Gas,Grain
+Israel,Chemical Minerals,Natural Gas,Silicon & Silica
+Japan,Fish,Silicon & Silica,Precious Metals
+Jordan,Chemical Minerals,Natural Gas,Livestock
+Kazakhstan,Uranium,Crude Oil,Coal
+Kuwait,Crude Oil,Natural Gas,Fish
+Kyrgyzstan,Precious Metals,Livestock,Coal
+Laos,Timber,Copper,Grain
+Lebanon,Grain,Livestock,Silicon & Silica
+Malaysia,Rubber,Crude Oil,Timber
+Maldives,Fish,Silicon & Silica,Sugar
+Mongolia,Coal,Copper,Livestock
+Myanmar,Natural Gas,Timber,Precious Metals
+Nepal,Timber,Grain,Livestock
+North Korea,Coal,Iron Ore,Rare Earth Elements
+Oman,Crude Oil,Natural Gas,Fish
+Pakistan,Cotton,Grain,Natural Gas
+Palestine,Livestock,Grain,Silicon & Silica
+Philippines,Copper,Fish,Sugar
+Qatar,Natural Gas,Crude Oil,Fish
+Saudi Arabia,Crude Oil,Natural Gas,Chemical Minerals
+Singapore,Silicon & Silica,Fish,Natural Gas
+South Korea,Silicon & Silica,Fish,Precious Metals
+Sri Lanka,Coffee & Cocoa,Precious Metals,Fish
+Syria,Crude Oil,Grain,Livestock
+Taiwan,Silicon & Silica,Fish,Precious Metals
+Tajikistan,Cotton,Bauxite,Precious Metals
+Thailand,Rubber,Grain,Natural Gas
+Timor-Leste,Crude Oil,Natural Gas,Coffee & Cocoa
+Turkey,Chemical Minerals,Grain,Iron Ore
+Turkmenistan,Natural Gas,Cotton,Chemical Minerals
+United Arab Emirates,Crude Oil,Natural Gas,Silicon & Silica
+Uzbekistan,Cotton,Precious Metals,Natural Gas
+Vietnam,Grain,Rubber,Coal
+Yemen,Crude Oil,Fish,Natural Gas
+Albania,Crude Oil,Iron Ore,Livestock
+Andorra,Timber,Livestock,Grain
+Austria,Timber,Iron Ore,Livestock
+Belarus,Chemical Minerals,Timber,Grain
+Belgium,Silicon & Silica,Livestock,Grain
+Bosnia and Herzegovina,Timber,Coal,Bauxite
+Bulgaria,Grain,Copper,Livestock
+Croatia,Fish,Timber,Crude Oil
+Czech Republic,Coal,Timber,Grain
+Denmark,Crude Oil,Fish,Grain
+Estonia,Timber,Fish,Chemical Minerals
+Finland,Timber,Iron Ore,Lithium & Cobalt
+France,Grain,Uranium,Livestock
+Germany,Coal,Grain,Silicon & Silica
+Greece,Bauxite,Fish,Grain
+Hungary,Grain,Bauxite,Livestock
+Iceland,Fish,Precious Metals,Livestock
+Ireland,Livestock,Copper,Natural Gas
+Italy,Grain,Natural Gas,Silicon & Silica
+Latvia,Timber,Fish,Grain
+Liechtenstein,Livestock,Timber,Silicon & Silica
+Lithuania,Timber,Grain,Fish
+Luxembourg,Iron Ore,Livestock,Silicon & Silica
+Malta,Fish,Silicon & Silica,Grain
+Moldova,Grain,Livestock,Silicon & Silica
+Monaco,Fish,Silicon & Silica,Natural Gas
+Montenegro,Bauxite,Timber,Fish
+Netherlands,Natural Gas,Grain,Livestock
+North Macedonia,Iron Ore,Grain,Precious Metals
+Norway,Crude Oil,Natural Gas,Fish
+Poland,Coal,Copper,Grain
+Portugal,Lithium & Cobalt,Fish,Timber
+Romania,Grain,Natural Gas,Timber
+Russia,Crude Oil,Natural Gas,Timber
+San Marino,Grain,Livestock,Silicon & Silica
+Serbia,Copper,Grain,Coal
+Slovakia,Timber,Coal,Grain
+Slovenia,Timber,Livestock,Grain
+Spain,Grain,Copper,Fish
+Sweden,Iron Ore,Timber,Precious Metals
+Switzerland,Precious Metals,Livestock,Timber
+Ukraine,Grain,Iron Ore,Coal
+United Kingdom,Natural Gas,Crude Oil,Grain
+Vatican City,Silicon & Silica,Precious Metals,Grain
+Australia,Iron Ore,Coal,Lithium & Cobalt
+Fiji,Sugar,Fish,Timber
+Kiribati,Fish,Chemical Minerals,Sugar
+Marshall Islands,Fish,Silicon & Silica,Sugar
+Micronesia,Fish,Timber,Sugar
+Nauru,Chemical Minerals,Fish,Silicon & Silica
+New Zealand,Livestock,Timber,Fish
+Palau,Fish,Timber,Silicon & Silica
+Papua New Guinea,Precious Metals,Crude Oil,Timber
+Samoa,Fish,Timber,Coffee & Cocoa
+Solomon Islands,Timber,Fish,Precious Metals
+Tonga,Fish,Grain,Coffee & Cocoa
+Tuvalu,Fish,Silicon & Silica,Sugar
+Vanuatu,Fish,Timber,Livestock
