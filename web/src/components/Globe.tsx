@@ -5,14 +5,39 @@ import type { City } from '../types'
 
 const ATLAS_URL = `${import.meta.env.BASE_URL}countries-110m.json`
 
+/** A transient trade/gift link drawn as a great-circle arc on the globe (§8). */
+export interface TradeArc {
+  id: number
+  kind: 'market_sell' | 'market_buy' | 'offer_buy' | 'gift'
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+}
+
 interface GlobeProps {
   cities: City[]
   homeCityId: string | null
   selectedCityId: string | null
+  arcs?: TradeArc[]
   onCityClick: (city: City) => void
 }
 
-export default function Globe({ cities, homeCityId, selectedCityId, onCityClick }: GlobeProps) {
+// Color a city by happiness: red (miserable) → amber → green (thriving).
+function happinessColor(happiness: number, alpha = 0.8): string {
+  const h = Math.max(0, Math.min(100, happiness))
+  const hue = Math.round((h / 100) * 130) // 0 = red, 130 = green
+  return `hsla(${hue}, 85%, 55%, ${alpha})`
+}
+
+const ARC_COLOR: Record<TradeArc['kind'], string> = {
+  gift: '#ffb000',
+  offer_buy: '#4be37a',
+  market_sell: '#4be37a',
+  market_buy: '#4be37a',
+}
+
+export default function Globe({ cities, homeCityId, selectedCityId, arcs = [], onCityClick }: GlobeProps) {
   const globeRef = useRef<any>(null)
   const polygonsRef = useRef<any[]>([])
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight })
@@ -71,7 +96,9 @@ export default function Globe({ cities, homeCityId, selectedCityId, onCityClick 
     const c = d as City
     if (c.id === homeCityId) return '#ffb000'
     if (c.id === selectedCityId) return '#ff4536'
-    return c.population > 0 ? '#4be37a99' : '#4be37a30'
+    // Everyone else is tinted by happiness — the planet reads as a heat-map of
+    // thriving (green) vs struggling (red) cities, dim if depopulated (§8).
+    return c.population > 0 ? happinessColor(c.happiness, 0.75) : '#4be37a30'
   }, [homeCityId, selectedCityId])
 
   const pointRadius = useCallback((d: any) => {
@@ -91,6 +118,7 @@ export default function Globe({ cities, homeCityId, selectedCityId, onCityClick 
     return `<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#d4dcc6;text-align:center;background:rgba(8,11,7,0.85);border:1px solid rgba(255,176,0,0.3);padding:4px 10px;">
       <b>${c.name}</b>, ${c.country}<br/>
       <span style="color:#ffb000;">pop ${Math.round(c.population).toLocaleString()}</span>
+      <span style="color:${happinessColor(c.happiness)};"> · ☺ ${c.happiness}%</span>
     </div>`
   }, [])
 
@@ -113,6 +141,18 @@ export default function Globe({ cities, homeCityId, selectedCityId, onCityClick 
       pointLabel={pointLabel}
       onPointClick={handlePointClick}
       pointsTransitionDuration={0}
+      arcsData={arcs}
+      arcStartLat="startLat"
+      arcStartLng="startLng"
+      arcEndLat="endLat"
+      arcEndLng="endLng"
+      arcColor={(d: any) => ARC_COLOR[(d as TradeArc).kind] ?? '#4be37a'}
+      arcStroke={0.5}
+      arcAltitudeAutoScale={0.4}
+      arcDashLength={0.5}
+      arcDashGap={0.2}
+      arcDashAnimateTime={1800}
+      arcsTransitionDuration={300}
       atmosphereColor="#2e7d4f"
       atmosphereAltitude={0.18}
       animateIn={true}

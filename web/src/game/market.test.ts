@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { marketBuy, marketSell, clampOfferPrice, postOffer, takeOffer } from './market'
+import { marketBuy, marketSell, clampOfferPrice, postOffer, takeOffer, giftResource } from './market'
 import { resourceInfo } from './catalog'
 import { makeCity } from './testUtils'
 
@@ -38,5 +38,18 @@ describe('market', () => {
     expect(buyer.inventory['Grain']).toBe(4)
     expect(seller.cash).toBeGreaterThan(1000)
     expect(offer.qty).toBe(6)
+  })
+
+  it('gifts goods between cities with no cash changing hands', () => {
+    const from = makeCity({ id: 'a', cash: 500, inventory: { Grain: 30 } })
+    const to = makeCity({ id: 'b', cash: 500, inventory: {} })
+    const gifted = giftResource(from, to, 'Grain', 100) // clamped to stock
+    expect(gifted).toBe(30)
+    expect(from.inventory['Grain']).toBe(0)
+    expect(to.inventory['Grain']).toBe(30)
+    expect(from.cash).toBe(500) // no cash moved
+    expect(to.cash).toBe(500)
+    // gifting to yourself is a no-op
+    expect(giftResource(to, to, 'Grain', 5)).toBe(0)
   })
 })

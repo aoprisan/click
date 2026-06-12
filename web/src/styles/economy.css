@@ -196,3 +196,99 @@
 }
 .pwa-prompt h3 { font-size: 13px; color: var(--amber); margin-bottom: 2px; }
 .pwa-prompt p { color: var(--dim); font-size: 11px; }
+
+/* ---- tech-tier gating: locked buildings (§10 Q#4) ---- */
+.build-row.locked { opacity: 0.55; cursor: default; }
+.build-row.locked:hover { border-color: var(--line-dim); }
+.locked-tag {
+  color: var(--dim);
+  border-color: var(--line-dim);
+  cursor: help;
+  white-space: nowrap;
+}
+
+/* ---- live units-per-click badge on the GROW dial (§7 feedback) ---- */
+.launch-per-click {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+/* ---- first-session tutorial coach card (§6) ---- */
+.tutorial-card {
+  position: fixed;
+  left: 50%;
+  bottom: 168px;
+  transform: translateX(-50%);
+  z-index: 150;
+  width: min(440px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px 14px 12px;
+  backdrop-filter: blur(6px);
+  animation: fadeInUp 0.3s ease;
+}
+.tutorial-head { display: flex; align-items: center; gap: 10px; }
+.tutorial-progress { color: var(--dim); font-size: 10px; font-family: var(--font-mono); }
+.tutorial-skip {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--line-dim);
+  color: var(--dim);
+  font-size: 10px;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.tutorial-skip:hover { border-color: var(--amber); color: var(--amber); }
+.tutorial-text { font-size: 12px; line-height: 1.5; color: var(--text, #d4dcc6); margin-top: 6px; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ============================================================
+   Responsive pass (§5): keep the absolute HUD panels from
+   overlapping on narrow / short viewports.
+   ============================================================ */
+@media (max-width: 900px) {
+  .city-panel { width: 44vw; left: 12px; bottom: 96px; max-height: 42vh; }
+  .build-panel { width: 44vw; max-height: 44vh; }
+  .right-stack { width: 44vw; right: 12px; top: 150px; max-height: calc(100vh - 230px); }
+  .hud-left { left: 12px; }
+  .global-counter { transform: scale(0.86); transform-origin: top right; }
+  .leaderboard-panel { transform: scale(0.86); transform-origin: top left; }
+  .tutorial-card { bottom: 150px; }
+}
+
+/* Phones: collapse to a single scrollable column so nothing stacks on top of
+   the GROW dial. Panels become translucent bands over the globe. */
+@media (max-width: 560px) {
+  .city-panel,
+  .build-panel,
+  .right-stack {
+    width: 94vw;
+    left: 3vw;
+    right: 3vw;
+  }
+  .hud-left { left: 3vw; top: 132px; }
+  .build-panel { max-height: 30vh; }
+  .city-panel { bottom: 150px; max-height: 32vh; }
+  .right-stack { top: auto; bottom: 150px; max-height: 34vh; }
+  .build-panel, .city-panel, .right-stack > .panel { background: rgba(8, 11, 7, 0.9); }
+  .dial { transform: scale(0.82); }
+  .click-button-area { bottom: 10px; }
+  .tutorial-card { bottom: 120px; }
+}
+
+/* Short / landscape viewports: trim panel heights so they don't run together. */
+@media (max-height: 620px) {
+  .city-panel { max-height: 40vh; bottom: 84px; }
+  .build-panel { max-height: 40vh; }
+  .right-stack { max-height: calc(100vh - 180px); }
+  .dial { transform: scale(0.8); }
+}

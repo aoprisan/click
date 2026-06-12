@@ -16,40 +16,45 @@ here, roughly in priority order. See `README.md` for how it's built and
 - **Monetization (§8)** — Bucks shop: energy-drink multiplier matrix,
   autoclicker "employees", air-ticket city moves.
 - **Shell** — PWA, localStorage persistence, deterministic seeding, v1 tactical
-  aesthetic. 27 vitest specs over the pure logic.
+  aesthetic. 39 vitest specs over the pure logic.
+- **Balance harness** — `game/balanceHarness.ts` runs the whole world (bots + an
+  optional clicking player) headless and deterministically for N ticks;
+  `game/balanceHarness.test.ts` asserts population/cash/happiness stay in sane
+  bands. `npm run balance` prints a band report. It caught a population-wipe bug
+  (stacking a Housing Block evicted the city) — fixed in `game/population.ts`.
+- **Tech-tier gating (§10 Q#4)** — `tierUnlockPopulation()` opens higher building
+  tiers as a city grows (1k/5k/20k/50k); enforced in `economy.startBuild`,
+  respected by bots, shown locked in the Build panel.
+- **Deeper happiness needs** — `FUN_GOODS` / `LUXURY_GOODS` widened with real
+  compute/AI + apparel/pharma goods, now gated behind tech tiers as late game.
+- **Player-to-player gifting (§8)** — `market.giftResource()` on the GameClient
+  seam; a Gift control in the Trade panel sends goods to any city, free.
+- **Activity feedback (§7)** — live units-per-click badge on the GROW dial +
+  `production` events surfaced as "▲ N good" toasts.
+- **Globe (§8)** — cities tinted by happiness (red→amber→green); transient
+  great-circle arcs flash on trades/gifts.
+- **First-session tutorial (§6)** — milestone-driven coach card (work → feed →
+  house), shown once.
+- **Responsive pass (§5)** — media queries so the absolute HUD panels reflow on
+  narrow / short viewports instead of overlapping.
 
 ## Next — gameplay & balance
 
-1. **Economy balance pass (highest value).** The numbers are first-draft and
-   easy to wander into starvation or runaway. Tune from play:
-   - `game/civic.ts` — `FOOD_PER_CAPITA` / `ENERGY_PER_CAPITA`.
-   - `game/catalog.ts` — `buildCost` / `constructionUnits` / `workPerBatch`.
-   - `game/throttle.ts` — the click cap.
-   - `game/shop.ts` — Bucks prices, durations.
-   - Consider a "balance harness": run the bot sim headless for N ticks and
-     assert population/cash/happiness stay in sane bands.
-2. **Deeper happiness needs.** Fun/luxuries subsections exist but are thin —
-   wire more goods into `FUN_GOODS` / `LUXURY_GOODS` and add their buildings to
-   the buildable set so large cities have real late-game problems to solve.
-3. **Tech-tier gating (§10 open Q#4).** Today every non-residential building is
-   buildable from the start. Gate higher tiers behind population / prerequisite
-   buildings so the tree unlocks over a session.
-4. **Player-to-player gifting (§8).** Real gifting UI (currently the top-item
-   purchase only fires a flavor notice). Needs a notion of other *players* —
-   trivial against bots, meaningful once multiplayer is real.
+The harness now models a *rounded* clicker (food + housing + an energy plant
+past pop 1,000). It confirms the intended dynamic: clicking sustains
+food+housing growth, while energy/fun/luxuries are **trade-driven**, so a pure
+clicker's happiness settles into a livable mid-band rather than pinning at 100.
+What's left here is play-tuning from that baseline:
 
-## Next — UX & polish
-
-5. **Mobile / short-viewport layout.** Panels overlap on short screens; the
-   left build+city stack and the right market+trade+shop stack need a responsive
-   pass (drawers or tabs on narrow widths).
-6. **Onboarding tutorial.** A first-session nudge: "pick a building → click →
-   build housing → feed your city." The starvation valve is unintuitive cold.
-7. **Activity feedback.** Surface batch completions / production ticks on the
-   active building; show the units-per-click number live (it changes with
-   happiness).
-8. **Globe.** Color/size markers by happiness or wealth, not just population;
-   show trade flows between cities.
+- **Numbers still first-draft.** Tune `civic.ts` (`FOOD_PER_CAPITA` /
+  `ENERGY_PER_CAPITA`), `catalog.ts` (`buildCost` / `constructionUnits` /
+  `workPerBatch` / `tierUnlockPopulation`), `throttle.ts` (click cap), and
+  `shop.ts` (Bucks prices). Watch `npm run balance` for the bands.
+- **Energy is a pure cash sink for a clicker** (Coal+Water in, Grid Energy
+  consumed). Consider a cheaper early energy source, or letting some energy be
+  sellable, so a clicker can lift the energy section without leaning on trade.
+- **Prerequisite-building gating.** Gating is population-only today; §10 Q#4 also
+  imagines prerequisite buildings unlocking a tier.
 
 ## Next — toward a real backend
 

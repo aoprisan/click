@@ -4,6 +4,7 @@
 import type { City, CityBuilding } from '../types'
 import {
   getBuilding, buildCost, upgradeCost, constructionUnits, workPerBatch, resourceInfo,
+  tierUnlockPopulation, type BuildingMeta,
 } from './catalog'
 import { marketBuy, addInv } from './market'
 
@@ -13,6 +14,12 @@ export function findBuilding(city: City, defId: string): CityBuilding | undefine
 
 export function isOperational(b: CityBuilding): boolean {
   return b.level >= 1 && b.constructionRemaining <= 0
+}
+
+/** Whether the city has grown enough to construct this building's tier (§10 Q#4).
+ *  Keyed off peak population so an unlock is permanent — a dip never relocks. */
+export function isBuildingUnlocked(city: City, def: BuildingMeta): boolean {
+  return city.peakPopulation >= tierUnlockPopulation(def.tier)
 }
 
 export interface BuildResult { ok: boolean; reason?: string }
@@ -28,6 +35,9 @@ export function startBuild(city: City, defId: string): BuildResult {
   }
   if (existing && existing.constructionRemaining > 0) {
     return { ok: false, reason: 'construction already in progress' }
+  }
+  if (!existing && !isBuildingUnlocked(city, def)) {
+    return { ok: false, reason: `unlocks at pop ${tierUnlockPopulation(def.tier).toLocaleString()}` }
   }
   const cost = buildCost(def)
   if (city.cash < cost) return { ok: false, reason: 'not enough cash' }

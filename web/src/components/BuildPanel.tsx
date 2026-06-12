@@ -2,9 +2,9 @@ import { useState } from 'react'
 import type { City } from '../types'
 import {
   ALL_BUILDINGS, ALL_BRANCHES, getBuilding, buildCost, upgradeCost,
-  constructionUnits, formatRecipe,
+  constructionUnits, formatRecipe, tierUnlockPopulation,
 } from '../game/catalog'
-import { isOperational } from '../game/economy'
+import { isOperational, isBuildingUnlocked } from '../game/economy'
 
 interface Props {
   city: City
@@ -74,11 +74,18 @@ export default function BuildPanel({ city, activeBuildingId, onSelectActive, onB
         {catalog.map(def => {
           const cost = buildCost(def)
           const afford = city.cash >= cost
+          const unlocked = isBuildingUnlocked(city, def)
           return (
-            <div key={def.id} className="build-row">
+            <div key={def.id} className={`build-row${unlocked ? '' : ' locked'}`}>
               <div className="row">
                 <span className="build-name">{def.name}{def.tier > 0 ? ` · T${def.tier}` : ''}</span>
-                <button className="mini-btn buy" disabled={!afford} onClick={() => onBuild(def.id)}>${cost}</button>
+                {unlocked ? (
+                  <button className="mini-btn buy" disabled={!afford} onClick={() => onBuild(def.id)}>${cost}</button>
+                ) : (
+                  <span className="mini-btn locked-tag" title={`unlocks at population ${tierUnlockPopulation(def.tier).toLocaleString()}`}>
+                    🔒 {tierUnlockPopulation(def.tier).toLocaleString()}
+                  </span>
+                )}
               </div>
               <span className="build-recipe">{formatRecipe(def)}</span>
             </div>

@@ -4,10 +4,13 @@ import { useGameClient } from './hooks/useGameClient'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
 import type { City, Operator } from './types'
 import { getBuilding } from './game/catalog'
+import { clickEffectiveness } from './game/happiness'
+import type { TradeArc } from './components/Globe'
 import Globe from './components/Globe'
 import Onboarding from './components/Onboarding'
 import CityPanel from './components/CityPanel'
 import BuildPanel from './components/BuildPanel'
+import Tutorial from './components/Tutorial'
 import MarketPanel from './components/MarketPanel'
 import TradePanel from './components/TradePanel'
 import Leaderboard from './components/Leaderboard'
@@ -27,7 +30,11 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [booted, setBooted] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  const [arcs, setArcs] = useState<TradeArc[]>([])
   const toastSeq = useRef(0)
+  const arcSeq = useRef(0)
+  const lastProdToast = useRef(0)
+  const cityRef = useRef<Map<string, City>>(new Map())
   const pwa = usePwaUpdate()
 
   // A slow clock so active-boost countdowns tick down in the UI.
@@ -56,6 +63,10 @@ export default function App() {
 
   const homeId = operator?.homeCityId ?? null
 
+  // Keep a live id→city map for coordinate lookups (globe arcs) without
+  // re-creating the trade handler on every city tick.
+  useEffect(() => { cityRef.current = new Map(cities.map(c => [c.id, c])) }, [cities])
+
   useGameClient({
     onCityUpdate: c => setCities(prev => {
       const i = prev.findIndex(x => x.id === c.id)
@@ -71,15 +82,41 @@ export default function App() {
     },
     onBuildingBuilt: b => { if (b.cityId === homeId) pushToast('BUILT', `${b.buildingName} is operational`, 'build') },
     onTrade: t => {
-      if (t.cityId === homeId) {
-        const verb = t.kind === 'market_sell' ? 'Sold' : t.kind === 'market_buy' ? 'Bought' : 'Bought'
+      if (t.kind === 'gift' && t.cityId === homeId) {
+        pushToast('GIFT', `Gifted ${t.qty} ${t.resource} to ${t.counterpartyName}`, 'good')
+      } else if (t.cityId === homeId) {
+        const verb = t.kind === 'market_sell' ? 'Sold' : 'Bought'
         pushToast('TRADE', `${verb} ${t.qty} ${t.resource}`, 'trade')
       } else if (t.counterpartyName && homeId && cities.find(c => c.id === homeId)?.name === t.counterpartyName) {
         pushToast('TRADE', `${t.cityName} bought ${t.qty} ${t.resource} from you`, 'trade')
       }
+      if (t.counterpartyId) addArc(t.cityId, t.counterpartyId, t.kind)
+    },
+    onProduction: p => {
+      if (p.cityId !== homeId) return
+      // throttle so a flurry of clicks doesn't bury the toast stack
+      const t = Date.now()
+      if (t - lastProdToast.current < 1200) return
+      lastProdToast.current = t
+      pushToast('PROD', `▲ ${Math.round(p.qty)} ${p.output}`, 'build')
     },
     onNotice: n => pushToast(n.tone === 'warn' ? 'WARN' : 'INFO', n.text, n.tone === 'warn' ? 'warn' : 'info'),
   })
+
+  // A transient great-circle arc between two trading cities, fading off the globe.
+  const addArc = useCallback((aId: string, bId: string, kind: TradeArc['kind']) => {
+    setArcs(prev => {
+      const ca = cityRef.current.get(aId), cb = cityRef.current.get(bId)
+      if (!ca || !cb) return prev
+      const id = ++arcSeq.current
+      const arc: TradeArc = {
+        id, kind,
+        startLat: ca.lat, startLng: ca.lng, endLat: cb.lat, endLng: cb.lng,
+      }
+      setTimeout(() => setArcs(p => p.filter(x => x.id !== id)), 5000)
+      return [...prev.slice(-13), arc]
+    })
+  }, [])
 
   const homeCity = useMemo(() => cities.find(c => c.id === homeId) ?? null, [cities, homeId])
   const selectedCity = useMemo(
@@ -101,6 +138,8 @@ export default function App() {
   const activeBuildingName = getBuilding(activeBuildingId)?.name ?? activeBuildingId
   const multiplier = operator?.activeMultiplier && now < operator.activeMultiplier.expiresAt ? operator.activeMultiplier.factor : 1
   const autoclicking = !!(operator?.autoclickerUntil && now < operator.autoclickerUntil)
+  // Units the next click is worth right now — scales live with happiness × drink (§7).
+  const unitsPerClick = homeCity ? clickEffectiveness(homeCity.happiness) * multiplier : multiplier
 
   return (
     <>
@@ -113,6 +152,7 @@ export default function App() {
         cities={cities}
         homeCityId={homeId}
         selectedCityId={selectedCityId}
+        arcs={arcs}
         onCityClick={c => setSelectedCityId(c.id)}
       />
 
@@ -146,6 +186,7 @@ export default function App() {
               onBuyOffer={(id, q) => game.buyOffer(id, q)}
               onPostOffer={(r, q, p) => game.postOffer(r, q, p)}
               onCancelOffer={id => game.cancelOffer(id)}
+              onGift={(toId, r, q) => game.giftResource(toId, r, q)}
             />
             {operator && (
               <ShopPanel
@@ -163,6 +204,7 @@ export default function App() {
             onClick={handleClick}
             totalUnits={operator?.totalUnits ?? 0}
             activeBuildingName={activeBuildingName}
+            unitsPerClick={unitsPerClick}
             meter={meter}
             blocked={blocked}
             multiplier={multiplier}
@@ -170,6 +212,8 @@ export default function App() {
           />
         </>
       )}
+
+      {homeCity && operator && <Tutorial city={homeCity} operator={operator} />}
 
       <ToastSystem toasts={toasts} />
       <PwaPrompts pwa={pwa} />

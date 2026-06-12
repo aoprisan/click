@@ -2,13 +2,15 @@
 // happiness (design §3). Build housing → capacity rises → population grows.
 import type { City } from '../types'
 import { getBuilding } from './catalog'
-import { isOperational } from './economy'
 
 export function capacityOf(city: City): number {
   let cap = 0
   for (const b of city.buildings) {
     const def = getBuilding(b.defId)
-    if (def?.isResidential && isOperational(b)) cap += b.level * def.capacityPerLevel
+    // Capacity is the *completed* blocks (`level`). A new block stacking on top
+    // carries constructionRemaining > 0, but it must NOT evict the residents of
+    // the blocks already standing — so count by level, not operational state.
+    if (def?.isResidential && b.level >= 1) cap += b.level * def.capacityPerLevel
   }
   return cap
 }

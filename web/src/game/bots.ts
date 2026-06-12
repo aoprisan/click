@@ -4,7 +4,7 @@
 // the player uses.
 import type { City, GameEvent } from '../types'
 import { ALL_BUILDINGS, getBuilding, buildCost } from './catalog'
-import { applyUnits, startBuild, isOperational, findBuilding } from './economy'
+import { applyUnits, startBuild, isOperational, findBuilding, isBuildingUnlocked } from './economy'
 import { consumeNeeds, refreshHappiness } from './happiness'
 import { growPopulation, capacityOf } from './population'
 import { marketSell, postOffer, takeOffer, addInv } from './market'
@@ -56,6 +56,7 @@ function botConstruct(city: City, ctx: BotContext): void {
   const options = ALL_BUILDINGS.filter(def =>
     !def.isResidential &&
     def.tier <= 6 &&
+    isBuildingUnlocked(city, def) &&
     !findBuilding(city, def.id) &&
     city.cash >= buildCost(def),
   )
