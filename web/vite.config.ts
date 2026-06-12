@@ -2,9 +2,11 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Hosted at the site root. The Globe reads import.meta.env.BASE_URL to load its
-// bundled country atlas, so keep this in sync with where the app is hosted.
-const base = '/'
+// Defaults to the site root for local dev/preview. On GitHub Pages the app is
+// served from a repo subpath (https://<user>.github.io/click/), so the deploy
+// workflow sets VITE_BASE=/click/. The Globe reads import.meta.env.BASE_URL to
+// load its bundled country atlas, and the SW/manifest paths derive from this too.
+const base = process.env.VITE_BASE || '/'
 
 export default defineConfig({
   base,
