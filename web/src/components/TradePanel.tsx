@@ -8,13 +8,17 @@ interface Props {
   onBuyOffer: (offerId: string, qty: number) => void
   onPostOffer: (resource: string, qty: number, price: number) => void
   onCancelOffer: (offerId: string) => void
+  onGift: (toCityId: string, resource: string, qty: number) => void
 }
 
-export default function TradePanel({ home, cities, onBuyOffer, onPostOffer, onCancelOffer }: Props) {
+export default function TradePanel({ home, cities, onBuyOffer, onPostOffer, onCancelOffer, onGift }: Props) {
   const [open, setOpen] = useState(false)
   const [resource, setResource] = useState('')
   const [qty, setQty] = useState('10')
   const [price, setPrice] = useState('')
+  const [giftTo, setGiftTo] = useState('')
+  const [giftResrc, setGiftResrc] = useState('')
+  const [giftQty, setGiftQty] = useState('10')
 
   const otherOffers = cities
     .filter(c => c.id !== home.id)
@@ -23,6 +27,10 @@ export default function TradePanel({ home, cities, onBuyOffer, onPostOffer, onCa
     .slice(0, 8)
 
   const sellable = Object.entries(home.inventory).filter(([, q]) => q >= 1).map(([r]) => r)
+  const giftTargets = cities
+    .filter(c => c.id !== home.id)
+    .sort((a, b) => b.population - a.population)
+    .slice(0, 60)
 
   return (
     <div className="panel bracketed">
@@ -81,6 +89,29 @@ export default function TradePanel({ home, cities, onBuyOffer, onPostOffer, onCa
               price clamps to {resourceInfo(resource).sell}–{resourceInfo(resource).buy}
             </div>
           )}
+
+          <hr className="rule" />
+          <span className="panel-label">Gift a good <span className="muted tiny">(no cash — help an ally)</span></span>
+          <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+            <select className="field" style={{ flex: 1, minWidth: 90, padding: '4px 6px', fontSize: 11 }} value={giftResrc} onChange={e => setGiftResrc(e.target.value)}>
+              <option value="">good…</option>
+              {sellable.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <input className="field" style={{ width: 44, padding: '4px 6px', fontSize: 11 }} value={giftQty} onChange={e => setGiftQty(e.target.value)} placeholder="qty" />
+          </div>
+          <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+            <select className="field" style={{ flex: 1, minWidth: 90, padding: '4px 6px', fontSize: 11 }} value={giftTo} onChange={e => setGiftTo(e.target.value)}>
+              <option value="">to city…</option>
+              {giftTargets.map(c => <option key={c.id} value={c.id}>{c.name} · {c.countryCode}</option>)}
+            </select>
+            <button
+              className="mini-btn"
+              disabled={!giftResrc || !giftTo}
+              onClick={() => { onGift(giftTo, giftResrc, Number(giftQty) || 0); setGiftResrc('') }}
+            >
+              gift
+            </button>
+          </div>
         </div>
       )}
     </div>

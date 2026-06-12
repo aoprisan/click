@@ -54,8 +54,9 @@ A hard-currency ("Bucks") shop, in `game/shop.ts` + `components/ShopPanel.tsx`:
   reverts to bot control.
 
 Bucks would be bought with real money; here the operator just starts with a
-balance (`STARTING_BUCKS`). No payments, no gifting UI yet (the top-item gift is
-a flavor notice).
+balance (`STARTING_BUCKS`). No payments. Player-to-player gifting is real: the
+Trade panel can send goods to any city for free (`game/market.ts` →
+`giftResource`).
 
 ## Known tuning knobs (prototype)
 
@@ -67,5 +68,5 @@ a flavor notice).
 
 ## Not yet
 
-Player-to-player gifting, transport, deeper tech-tier gating, seasons, battle
-pass. See the design doc §8/§10.
+Prerequisite-building tech gating (population gating is in), transport, seasons,
+battle pass, and a real backend. See the design doc §8/§10 and `WHATS_NEXT.md`.

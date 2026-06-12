@@ -6,6 +6,8 @@ interface ClickButtonProps {
   onClick: () => void
   totalUnits: number
   activeBuildingName: string
+  /** activity units the next click is worth right now (happiness × drink). */
+  unitsPerClick: number
   /** throttle meter 0..1; 1 = full bucket. */
   meter: number
   blocked: boolean
@@ -15,7 +17,7 @@ interface ClickButtonProps {
   autoclicking: boolean
 }
 
-export default function ClickButton({ onClick, totalUnits, activeBuildingName, meter, blocked, multiplier, autoclicking }: ClickButtonProps) {
+export default function ClickButton({ onClick, totalUnits, activeBuildingName, unitsPerClick, meter, blocked, multiplier, autoclicking }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
@@ -51,7 +53,10 @@ export default function ClickButton({ onClick, totalUnits, activeBuildingName, m
           <div key={p.id} className="particle" style={{ '--dx': `${p.dx}px`, '--dy': `${p.dy}px` } as React.CSSProperties} />
         ))}
         {ripples.map(id => <div key={id} className="ripple" />)}
-        <button className={`launch-btn${pressing ? ' pressing' : ''}`} onClick={handleClick}>GROW</button>
+        <button className={`launch-btn${pressing ? ' pressing' : ''}`} onClick={handleClick}>
+          GROW
+          <span className="launch-per-click">+{Math.round(unitsPerClick)}</span>
+        </button>
       </div>
 
       <div className={`throttle-meter${meter < 0.15 ? ' hot' : ''}`} title="click rate">
