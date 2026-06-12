@@ -15,7 +15,7 @@ import { refreshHappiness, clickEffectiveness, consumeNeeds } from '../game/happ
 import { growPopulation } from '../game/population'
 import { stepBot, seedStartingInventory } from '../game/bots'
 import {
-  marketBuy, marketSell, postOffer, cancelOffer, takeOffer, addInv,
+  marketBuy, marketSell, postOffer, cancelOffer, takeOffer, addInv, giftResource,
 } from '../game/market'
 import { RateMeter } from '../game/throttle'
 import {
@@ -225,9 +225,17 @@ export class MockGameClient implements GameClient {
     const units = clickEffectiveness(city.happiness) * mult // base 1..10 units × drink multiplier
     const res = applyUnits(city, buildingDefId, units)
     this.operator.totalUnits += units
+    const def = getBuilding(buildingDefId)
     if (res.completedConstruction) {
-      const def = getBuilding(buildingDefId)
       this.bus.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: def?.name ?? buildingDefId } })
+    }
+    // Surface what the click produced so the UI can flash live feedback (§7).
+    if (res.batches > 0 && def) {
+      const b = city.buildings.find(x => x.defId === buildingDefId)
+      const [output, perBatch] = Object.entries(def.outputs)[0] ?? []
+      if (output) {
+        this.bus.emit({ type: 'production', data: { cityId: city.id, buildingDefId, output, qty: perBatch * (b?.level ?? 1) * res.batches } })
+      }
     }
     refreshHappiness(city)
     this.bus.emit({ type: 'city_update', data: city })
@@ -292,7 +300,7 @@ export class MockGameClient implements GameClient {
       if (!offer) continue
       const bought = takeOffer(city, seller, offer, qty)
       if (bought > 0) {
-        this.bus.emit({ type: 'trade', data: { cityId: city.id, cityName: city.name, counterpartyName: seller.name, resource: offer.resource, qty: bought, kind: 'offer_buy' } })
+        this.bus.emit({ type: 'trade', data: { cityId: city.id, cityName: city.name, counterpartyName: seller.name, counterpartyId: seller.id, resource: offer.resource, qty: bought, kind: 'offer_buy' } })
         this.bus.emit({ type: 'city_update', data: city })
         this.bus.emit({ type: 'city_update', data: seller })
         this.scheduleSave()
@@ -300,6 +308,24 @@ export class MockGameClient implements GameClient {
         this.notify({ text: 'not enough cash', tone: 'warn' })
       }
       return
+    }
+  }
+
+  /** Gift goods from the home city to another city — a real player-to-player
+   *  transfer (design §8). Against bots today; meaningful once multiplayer lands. */
+  async giftResource(toCityId: string, resource: string, qty: number): Promise<void> {
+    const city = this.home(); if (!city) return
+    const to = this.cities.get(toCityId)
+    if (!to || to.id === city.id) { this.notify({ text: 'pick another city to gift', tone: 'warn' }); return }
+    const gifted = giftResource(city, to, resource, qty)
+    if (gifted > 0) {
+      this.bus.emit({ type: 'trade', data: { cityId: city.id, cityName: city.name, counterpartyName: to.name, counterpartyId: to.id, resource, qty: gifted, kind: 'gift' } })
+      this.bus.emit({ type: 'city_update', data: city })
+      this.bus.emit({ type: 'city_update', data: to })
+      this.notify({ text: `Gifted ${gifted} ${resource} to ${to.name}`, tone: 'good' })
+      this.scheduleSave()
+    } else {
+      this.notify({ text: 'nothing to gift', tone: 'warn' })
     }
   }
 

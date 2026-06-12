@@ -96,9 +96,20 @@ export interface TradeEvent {
   cityId: string
   cityName: string
   counterpartyName?: string
+  /** the other city's id, when there is one (offer/gift) — used to draw globe arcs. */
+  counterpartyId?: string
   resource: Resource
   qty: number
-  kind: 'market_sell' | 'market_buy' | 'offer_buy'
+  kind: 'market_sell' | 'market_buy' | 'offer_buy' | 'gift'
+}
+
+/** A production batch just completed on the active building (design §7 feedback). */
+export interface ProductionEvent {
+  cityId: string
+  buildingDefId: string
+  /** output good → units produced this click. */
+  output: Resource
+  qty: number
 }
 
 export interface BuildingBuiltEvent {
@@ -116,6 +127,7 @@ export type GameEvent =
   | { type: 'city_update'; data: City }
   | { type: 'operator_update'; data: Operator }
   | { type: 'trade'; data: TradeEvent }
+  | { type: 'production'; data: ProductionEvent }
   | { type: 'building_built'; data: BuildingBuiltEvent }
   | { type: 'throttle'; data: ThrottleState }
   | { type: 'notice'; data: NoticeEvent }

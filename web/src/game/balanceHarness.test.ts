@@ -60,6 +60,19 @@ describe('balance harness — sane bands (steady cadence)', () => {
     expect(player.happiness).toBeGreaterThan(40)
     expect(player.happiness).toBeLessThanOrEqual(100)
   })
+
+  it('rounds the city out past the energy stage without stalling', () => {
+    // A longer run carries the player through pop 1,000 (energy section on) and
+    // the tier-3 unlock. The cash-aware clicker should build a power plant and
+    // keep growing — energy/fun/luxuries are trade-driven, so happiness settles
+    // into a livable mid-band rather than pinning at 100 (the valve, by design).
+    const long = simulate({ seed: 1, ticks: 150, withPlayer: true })
+    const p = long.player!
+    expect(p.population).toBeGreaterThan(1_500)
+    expect(p.buildings.some(b => b.defId === 'coal-power-station')).toBe(true)
+    expect(p.happiness).toBeGreaterThan(45)
+    expect(p.happiness).toBeLessThan(90)
+  })
 })
 
 describe('balance harness — realistic cadence', () => {

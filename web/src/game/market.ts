@@ -66,6 +66,17 @@ export function cancelOffer(city: City, offerId: string): void {
   addInv(city, o.resource, o.qty) // return reserved goods
 }
 
+/** Gift goods from one city to another — no cash changes hands (design §8).
+ *  Clamps to the giver's stock; returns the quantity actually gifted. */
+export function giftResource(from: City, to: City, r: string, qty: number): number {
+  if (from.id === to.id) return 0
+  const n = Math.max(0, Math.min(Math.floor(qty), Math.floor(from.inventory[r] || 0)))
+  if (n <= 0) return 0
+  addInv(from, r, -n)
+  addInv(to, r, n)
+  return n
+}
+
 /** Buyer takes (part of) a seller's offer. Moves goods + cash between cities. */
 export function takeOffer(buyer: City, seller: City, offer: TradeOffer, qty: number): number {
   const affordable = Math.floor(buyer.cash / offer.price)

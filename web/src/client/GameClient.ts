@@ -36,6 +36,8 @@ export interface GameClient {
   postOffer(resource: string, qty: number, price: number): Promise<void>
   buyOffer(offerId: string, qty: number): Promise<void>
   cancelOffer(offerId: string): void
+  /** Gift goods from the home city to another city — no cash (design §8). */
+  giftResource(toCityId: string, resource: string, qty: number): Promise<void>
 
   // --- shop / monetization (design §8) ---
   /** Buy a shop item with Bucks (energy drink, autoclicker, air ticket). */

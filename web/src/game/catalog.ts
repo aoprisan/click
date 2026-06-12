@@ -69,6 +69,21 @@ export function upgradeCost(def: BuildingMeta, level: number): number {
   return Math.round(buildCost(def) * (1 + level * 0.6))
 }
 
+// --- tech-tier gating (design §10 open Q#4) ---
+// Higher tiers unlock as the city grows, so the tree opens over a session
+// rather than everything being buildable from tick one. Thresholds mirror the
+// happiness STAGES (1k / 5k / 20k / 50k) so new tiers arrive roughly when the
+// matching happiness subsection switches on and the city needs them.
+
+/** Lowest peak population at which a building of this tier can be constructed. */
+export function tierUnlockPopulation(tier: number): number {
+  if (tier <= 2) return 0
+  if (tier <= 4) return 1_000
+  if (tier <= 6) return 5_000
+  if (tier <= 8) return 20_000
+  return 50_000
+}
+
 export function formatRecipe(def: BuildingMeta): string {
   if (def.isResidential) return `+${def.capacityPerLevel} capacity`
   const ins = Object.keys(def.inputs)
