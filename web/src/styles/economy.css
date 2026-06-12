@@ -1,0 +1,198 @@
+/* ============================================================
+   Global Conflict v2 — economy UI (layered over the v1 console)
+   ============================================================ */
+
+/* ---- generic layout helpers ---- */
+.scroll-y { overflow-y: auto; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.muted { color: var(--dim); }
+.tiny { font-size: 10px; }
+.amber { color: var(--amber); }
+.green { color: var(--green); }
+.red { color: var(--red); }
+.orange { color: var(--orange); }
+
+/* ---- city panel (bottom-left): inventory + happiness ---- */
+.city-panel {
+  bottom: 28px;
+  left: 24px;
+  width: 320px;
+  max-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation-delay: 0.2s;
+}
+
+.happy-bar {
+  height: 6px;
+  background: rgba(255, 176, 0, 0.08);
+  border: 1px solid var(--line-dim);
+  position: relative;
+}
+.happy-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--green), var(--amber));
+}
+.happy-bar.low > span { background: linear-gradient(90deg, var(--red), var(--orange)); }
+
+.section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 14px;
+  font-size: 11px;
+}
+
+.inv-list, .build-list, .market-list, .trade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.inv-row { display: flex; justify-content: space-between; gap: 8px; }
+.inv-row .q { color: var(--amber); font-family: var(--font-mono); }
+
+/* ---- build panel (left HUD stack) ---- */
+.build-panel {
+  width: 300px;
+  max-height: 58vh;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.build-row {
+  border: 1px solid var(--line-dim);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  background: rgba(255, 176, 0, 0.02);
+}
+.build-row:hover { border-color: var(--line); }
+.build-row.active { border-color: var(--amber); background: rgba(255, 176, 0, 0.09); }
+.build-row.constructing { border-color: var(--orange); }
+
+.build-name { font-size: 12px; font-weight: 600; }
+.build-recipe { font-size: 10px; color: var(--dim); }
+
+.progress {
+  height: 4px;
+  background: rgba(255, 176, 0, 0.08);
+  position: relative;
+  margin-top: 2px;
+}
+.progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--orange);
+}
+
+.branch-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.branch-tab {
+  background: transparent;
+  border: 1px solid var(--line-dim);
+  color: var(--dim);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.branch-tab.sel { border-color: var(--amber); color: var(--amber); }
+
+/* ---- market + trade panels (right stack) ---- */
+.right-stack {
+  position: absolute;
+  top: 268px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+  /* never run off the bottom of the screen — scroll the stack instead. */
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* The base .panel is position:absolute (v1 HUD). Inside a flex stack the panels
+   must flow in the column, not collapse onto each other. */
+.right-stack > .panel,
+.hud-left > .panel {
+  position: relative;
+  inset: auto;
+  width: 100%;
+}
+
+/* GROW dial moved to bottom-centre so the right-hand panel stack can't collide
+   with it (and it sits under the thumb on mobile). */
+.click-button-area {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  bottom: 22px;
+}
+
+.market-row, .trade-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line-dim);
+}
+.mini-btn {
+  background: transparent;
+  border: 1px solid var(--line-dim);
+  color: var(--amber);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--amber); }
+.mini-btn:disabled { opacity: 0.4; cursor: default; }
+.mini-btn.sell { color: var(--green); }
+.mini-btn.buy { color: var(--orange); }
+
+.cash-chip { color: var(--green); font-family: var(--font-mono); }
+
+/* throttle meter under the launch dial */
+.throttle-meter {
+  width: 124px;
+  height: 5px;
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid var(--line-dim);
+  position: relative;
+}
+.throttle-meter > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--green);
+  transition: width 0.12s linear, background 0.2s;
+}
+.throttle-meter.hot > span { background: var(--red); }
+
+/* ---- PWA prompts ---- */
+.pwa-prompt {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 12px;
+  max-width: 92vw;
+  backdrop-filter: blur(6px);
+}
+.pwa-prompt h3 { font-size: 13px; color: var(--amber); margin-bottom: 2px; }
+.pwa-prompt p { color: var(--dim); font-size: 11px; }

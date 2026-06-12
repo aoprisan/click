@@ -1,0 +1,181 @@
+// Generates web/src/game/catalog.data.ts from the two design CSVs in docs/.
+//
+// - gamer_supply_chain_tech_tree.csv → BUILDINGS (branch, tier, name, inputs, outputs)
+// - world_countries_game_resources.csv → COUNTRY_RESOURCES (country → 3 raw resources)
+// - the union of every referenced resource → RESOURCES (a price registry)
+//
+// The design's global market is an infinite source/sink for EVERY resource, so
+// the production graph doesn't need to be closed: any dangling input is simply
+// buyable. We only normalize near-duplicate names via ALIASES so the same good
+// isn't priced twice under two spellings.
+//
+// Run: npm run gen-catalog   (from web/)
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const repoRoot = join(here, '..', '..')
+const docs = join(repoRoot, 'docs')
+const outFile = join(here, '..', 'src', 'game', 'catalog.data.ts')
+
+// --- tiny CSV parser (handles quoted fields, though our data has none) ---
+function parseCSV(text) {
+  const rows = []
+  for (const raw of text.split(/\r?\n/)) {
+    if (raw.trim() === '') continue
+    const cells = []
+    let cur = '', inQ = false
+    for (let i = 0; i < raw.length; i++) {
+      const c = raw[i]
+      if (inQ) {
+        if (c === '"' && raw[i + 1] === '"') { cur += '"'; i++ }
+        else if (c === '"') inQ = false
+        else cur += c
+      } else if (c === '"') inQ = true
+      else if (c === ',') { cells.push(cur); cur = '' }
+      else cur += c
+    }
+    cells.push(cur)
+    rows.push(cells.map(s => s.trim()))
+  }
+  return rows
+}
+
+// Near-duplicate / generic resource names collapsed to one canonical good.
+const ALIASES = {
+  'Gas': 'Natural Gas',
+  'Energy': 'Grid Energy',
+  'Rare Earths': 'Rare Earth Elements',
+  'Plastic': 'Raw Industrial Plastics',
+  'Basic Circuits': 'Logic Circuits',
+  'Vacuum Tube Workshop': 'Basic Analog Processors',
+  'Surface Ore': 'Surface Ore & Coal',
+  'Timber Planks': 'Timber',
+  'High-Pressure Fields': 'High-Pressure Oil & Gas Fields',
+  'Livestock/Plants': 'Livestock',
+  'Mega-Battery Farm': 'Stabilized Battery Bank',
+  'Automated Sorting Hub': 'Next-Day Delivery Center',
+}
+const canon = (name) => {
+  const n = name.trim()
+  return ALIASES[n] || n
+}
+
+const slug = (s) =>
+  s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+// --- tech tree → buildings ---
+const treeRows = parseCSV(readFileSync(join(docs, 'gamer_supply_chain_tech_tree.csv'), 'utf8'))
+const treeHeader = treeRows[0]
+const buildings = []
+const usedIds = new Set()
+
+for (const row of treeRows.slice(1)) {
+  const branch = row[0]
+  for (let col = 1; col < treeHeader.length; col++) {
+    const cell = (row[col] || '').trim()
+    if (!cell || cell.startsWith('N/A')) continue
+    const m = cell.match(/^(.*?)\s*\((.*?)->(.*)\)\s*$/)
+    if (!m) continue
+    const name = m[1].trim()
+    const tier = col // 1..10
+    const parseSide = (s) =>
+      s.split('+').map(x => x.trim()).filter(Boolean)
+
+    let needsWorkers = false
+    const inputs = {}
+    for (const raw of parseSide(m[2])) {
+      if (/^workers$/i.test(raw)) { needsWorkers = true; continue }
+      const r = canon(raw)
+      inputs[r] = (inputs[r] || 0) + 1
+    }
+    const outputs = {}
+    for (const raw of parseSide(m[3])) {
+      const r = canon(raw)
+      outputs[r] = (outputs[r] || 0) + 1
+    }
+
+    let id = slug(name)
+    while (usedIds.has(id)) id += '-x'
+    usedIds.add(id)
+    buildings.push({ id, branch, tier, name, inputs, outputs, needsWorkers })
+  }
+}
+
+// --- country resources ---
+const countryRows = parseCSV(readFileSync(join(docs, 'world_countries_game_resources.csv'), 'utf8'))
+const countryResources = {}
+for (const row of countryRows.slice(1)) {
+  const [country, r1, r2, r3] = row
+  if (!country) continue
+  countryResources[country] = [r1, r2, r3].filter(Boolean).map(canon)
+}
+
+// --- resource registry + prices ---
+// depth = lowest tier of a building that PRODUCES the resource (raw goods that
+// nothing produces get depth 0 and the cheapest price). Price climbs with depth.
+const producedAtTier = {}
+for (const b of buildings) {
+  for (const r of Object.keys(b.outputs)) {
+    producedAtTier[r] = producedAtTier[r] === undefined ? b.tier : Math.min(producedAtTier[r], b.tier)
+  }
+}
+const allResources = new Set()
+for (const b of buildings) {
+  Object.keys(b.inputs).forEach(r => allResources.add(r))
+  Object.keys(b.outputs).forEach(r => allResources.add(r))
+}
+for (const list of Object.values(countryResources)) list.forEach(r => allResources.add(r))
+
+const BASE = 4
+const GROWTH = 1.7
+const resources = {}
+for (const r of [...allResources].sort()) {
+  const depth = producedAtTier[r] ?? 0
+  const buy = Math.round(BASE * Math.pow(GROWTH, depth))
+  const sell = Math.max(1, Math.round(buy * 0.7)) // 30% market spread
+  resources[r] = { depth, buy, sell }
+}
+
+// --- emit ---
+const banner = `// AUTO-GENERATED by web/scripts/gen-catalog.mjs from docs/*.csv — do not edit by hand.
+// Regenerate with: npm run gen-catalog
+`
+const ts = `${banner}
+export interface BuildingDef {
+  id: string
+  branch: string
+  tier: number
+  name: string
+  inputs: Record<string, number>
+  outputs: Record<string, number>
+  needsWorkers: boolean
+}
+
+export interface ResourceInfo {
+  /** lowest tier of a building that produces it; 0 = raw/unproduced */
+  depth: number
+  /** price to buy ONE unit from the global market */
+  buy: number
+  /** price the global market pays for ONE unit */
+  sell: number
+}
+
+export const BRANCHES: string[] = ${JSON.stringify(treeRows.slice(1).map(r => r[0]), null, 0)}
+
+export const BUILDINGS: BuildingDef[] = ${JSON.stringify(buildings, null, 0)}
+
+export const COUNTRY_RESOURCES: Record<string, string[]> = ${JSON.stringify(countryResources, null, 0)}
+
+export const RESOURCES: Record<string, ResourceInfo> = ${JSON.stringify(resources, null, 0)}
+`
+
+mkdirSync(dirname(outFile), { recursive: true })
+writeFileSync(outFile, ts)
+
+console.log(`catalog.data.ts written:`)
+console.log(`  ${buildings.length} buildings across ${new Set(buildings.map(b => b.branch)).size} branches`)
+console.log(`  ${Object.keys(countryResources).length} countries`)
+console.log(`  ${Object.keys(resources).length} resources in the price registry`)
+console.log(`  price range: ${Math.min(...Object.values(resources).map(r => r.buy))}..${Math.max(...Object.values(resources).map(r => r.buy))} buy`)

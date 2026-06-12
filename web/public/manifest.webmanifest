@@ -1,0 +1,13 @@
+{
+  "name": "Global Conflict — build the city",
+  "short_name": "Global Conflict",
+  "description": "Pick a city, click to build its economy, trade resources, and out-grow rival cities on a live 3D globe.",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060805",
+  "theme_color": "#060805",
+  "start_url": "/",
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}
