@@ -26,8 +26,18 @@ here, roughly in priority order. See `README.md` for how it's built and
    - `game/catalog.ts` — `buildCost` / `constructionUnits` / `workPerBatch`.
    - `game/throttle.ts` — the click cap.
    - `game/shop.ts` — Bucks prices, durations.
-   - Consider a "balance harness": run the bot sim headless for N ticks and
-     assert population/cash/happiness stay in sane bands.
+   - **Done: balance harness.** `game/balanceHarness.ts` runs the whole world
+     (bots + an optional clicking player) headless and deterministically for N
+     ticks; `game/balanceHarness.test.ts` asserts population/cash/happiness stay
+     in sane bands. `npm run balance` prints a band report for tuning sessions.
+     It immediately caught a **population-wipe bug**: queuing a second Housing
+     Block set `constructionRemaining` on the standing block, so `capacityOf`
+     treated all completed housing as non-operational and `growPopulation`
+     clamped the city to 0 — fixed in `game/population.ts` (count residential
+     capacity by completed `level`, not operational state). This also reversed a
+     slow world-population decline under realistic bot cadence.
+   - Still first-draft, ripe for tuning from play: the per-capita demands, build
+     costs/curves, the click cap, and Bucks prices above.
 2. **Deeper happiness needs.** Fun/luxuries subsections exist but are thin —
    wire more goods into `FUN_GOODS` / `LUXURY_GOODS` and add their buildings to
    the buildable set so large cities have real late-game problems to solve.

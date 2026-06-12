@@ -47,4 +47,21 @@ describe('economy', () => {
     applyUnits(city, 'crop-farm', 40)
     expect(city.inventory['Grain']).toBe(3)
   })
+
+  it('stacking another residential block keeps the existing capacity', () => {
+    // Regression: queuing a second Housing Block used to set constructionRemaining
+    // on the standing block, dropping capacity to 0 and evicting the whole city.
+    const city = makeCity({ cash: 1000, buildings: [makeBuilding('housing-block', 2)] })
+    expect(capacityOf(city)).toBe(800) // 2 blocks × 400
+
+    const r = startBuild(city, 'housing-block') // stack a third
+    expect(r.ok).toBe(true)
+    const b = findBuilding(city, 'housing-block')!
+    expect(b.constructionRemaining).toBeGreaterThan(0) // new block underway…
+    expect(capacityOf(city)).toBe(800) // …but the standing blocks still house people
+
+    applyUnits(city, 'housing-block', constructionUnits(getBuilding('housing-block')!))
+    expect(b.level).toBe(3)
+    expect(capacityOf(city)).toBe(1200)
+  })
 })

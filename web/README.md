@@ -15,6 +15,7 @@ cd web
 npm install
 npm run dev        # http://localhost:5174 (or next free port)
 npm test           # vitest — pure game-logic suites
+npm run balance    # headless balance harness — band report + sane-band asserts
 npm run build      # tsc + vite (PWA service worker)
 npm run gen-catalog # regenerate src/game/catalog.data.ts from ../docs/*.csv
 ```
