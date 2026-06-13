@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { GameMode } from '../types'
+import { playClickSound, haptic } from '../sound'
 
 interface Particle {
   id: number
@@ -14,9 +15,10 @@ interface ClickButtonProps {
   rateLimited?: boolean
   gameMode: GameMode
   multiplier: number
+  expanded?: boolean
 }
 
-export default function ClickButton({ onClick, personalClicks, cityName, rateLimited, gameMode, multiplier }: ClickButtonProps) {
+export default function ClickButton({ onClick, personalClicks, cityName, rateLimited, gameMode, multiplier, expanded }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
@@ -27,6 +29,10 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
       onClick()
       return
     }
+
+    // Tactile feedback: warriors get a punchier, higher-pitched click.
+    playClickSound(gameMode === 'warrior' ? 1.18 : 1)
+    haptic(gameMode === 'warrior' ? 18 : 12)
 
     setPressing(true)
     setTimeout(() => setPressing(false), 100)
@@ -51,7 +57,7 @@ export default function ClickButton({ onClick, personalClicks, cityName, rateLim
   const buttonLabel = gameMode === 'spectator' ? 'LOGIN' : `GROW +${multiplier}`
 
   return (
-    <div className={`click-button-area mode-${gameMode}`}>
+    <div className={`click-button-area mode-${gameMode}${expanded ? ' expanded' : ''}`}>
       {cityName && gameMode !== 'spectator' && (
         <span className="launch-city">{cityName}</span>
       )}
