@@ -222,6 +222,7 @@ export default function App() {
             blocked={blocked}
             multiplier={multiplier}
             autoclicking={autoclicking}
+            expanded={hudHidden}
           />
         </>
       )}
