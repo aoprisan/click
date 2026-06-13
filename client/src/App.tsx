@@ -29,6 +29,7 @@ export default function App() {
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
   const [missileRefreshKey, setMissileRefreshKey] = useState(0)
   const [targetingMissile, setTargetingMissile] = useState<Missile | null>(null)
+  const [hudHidden, setHudHidden] = useState(false)
   const leaderboardTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const { toasts, addToast } = useToasts()
 
@@ -232,13 +233,23 @@ export default function App() {
         <span className="logo-sub">Tactical Command · Live</span>
       </div>
 
-      <GlobalDataPanel stats={globalStats} totalPopulation={totalGlobalClicks} />
+      <button
+        className={`hud-toggle${hudHidden ? ' collapsed' : ''}`}
+        onClick={() => setHudHidden(h => !h)}
+        aria-pressed={hudHidden}
+        title={hudHidden ? 'Show panels' : 'Hide panels'}
+      >
+        <span className="hud-toggle-icon" aria-hidden="true">{hudHidden ? '▣' : '▢'}</span>
+        {hudHidden ? 'Show panels' : 'Hide panels'}
+      </button>
+
+      {!hudHidden && <GlobalDataPanel stats={globalStats} totalPopulation={totalGlobalClicks} />}
 
       <ToastSystem toasts={toasts} />
 
-      <Leaderboard cities={leaderboard} />
+      {!hudHidden && <Leaderboard cities={leaderboard} />}
 
-      {selectedCity && (
+      {!hudHidden && selectedCity && (
         <InfoPanel
           city={selectedCity}
           isHome={user ? selectedCity.id === user.cityId : false}
@@ -247,7 +258,7 @@ export default function App() {
         />
       )}
 
-      {user && (
+      {!hudHidden && user && (
         <PlayerPanel
           user={user}
           gameMode={gameMode}
@@ -256,18 +267,20 @@ export default function App() {
         />
       )}
 
-      <div className="hud-left">
-        <SubscriptionPanel
-          gameMode={gameMode}
-          onUpgraded={handleSubscriptionUpgraded}
-        />
+      {!hudHidden && (
+        <div className="hud-left">
+          <SubscriptionPanel
+            gameMode={gameMode}
+            onUpgraded={handleSubscriptionUpgraded}
+          />
 
-        <MissilePanel
-          gameMode={gameMode}
-          onFireMissile={handleFireMissile}
-          refreshKey={missileRefreshKey}
-        />
-      </div>
+          <MissilePanel
+            gameMode={gameMode}
+            onFireMissile={handleFireMissile}
+            refreshKey={missileRefreshKey}
+          />
+        </div>
+      )}
 
       <ClickButton
         onClick={gameMode === 'spectator' ? handleSpectatorLogin : handleClick}

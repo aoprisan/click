@@ -111,6 +111,46 @@ body::after {
   margin-top: 1px;
 }
 
+/* HUD show/hide toggle — collapses all info panels, sits under the logo */
+.hud-toggle {
+  position: absolute;
+  top: 62px;
+  left: 24px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  font-family: var(--font-stencil);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(8, 11, 7, 0.72);
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  animation: bootIn 0.5s 0.2s both;
+}
+.hud-toggle:hover {
+  color: #ffd27a;
+  border-color: var(--amber);
+  background: rgba(8, 11, 7, 0.92);
+}
+.hud-toggle.collapsed {
+  color: var(--dim);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+.hud-toggle-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
 /* Corner brackets shared by panels + modal card */
 .bracketed {
   position: relative;

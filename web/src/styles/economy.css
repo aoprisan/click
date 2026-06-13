@@ -163,7 +163,7 @@
 
 /* throttle meter under the launch dial */
 .throttle-meter {
-  width: 124px;
+  width: 172px;
   height: 5px;
   background: rgba(255, 176, 0, 0.1);
   border: 1px solid var(--line-dim);

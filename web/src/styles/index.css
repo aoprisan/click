@@ -111,6 +111,46 @@ body::after {
   margin-top: 1px;
 }
 
+/* HUD show/hide toggle — collapses all info panels, sits under the logo */
+.hud-toggle {
+  position: absolute;
+  top: 62px;
+  left: 24px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  font-family: var(--font-stencil);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(8, 11, 7, 0.72);
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  animation: bootIn 0.5s 0.2s both;
+}
+.hud-toggle:hover {
+  color: #ffd27a;
+  border-color: var(--amber);
+  background: rgba(8, 11, 7, 0.92);
+}
+.hud-toggle.collapsed {
+  color: var(--dim);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+.hud-toggle-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
 /* Corner brackets shared by panels + modal card */
 .bracketed {
   position: relative;
@@ -499,31 +539,59 @@ body::after {
 }
 
 .launch-btn {
-  width: 124px;
-  height: 124px;
+  width: 172px;
+  height: 172px;
   border-radius: 50%;
   border: 2px solid var(--dial);
-  background: radial-gradient(circle at 38% 30%, #221806, #110d06 55%, #080604);
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 38% 30%, #2a1e08, #130e06 55%, #070504);
   color: var(--dial);
   font-family: var(--font-stencil);
-  font-size: 17px;
+  font-size: 23px;
   letter-spacing: 0.1em;
   text-shadow: 0 0 12px color-mix(in srgb, var(--dial) 80%, transparent);
   box-shadow:
-    0 0 26px color-mix(in srgb, var(--dial) 28%, transparent),
-    inset 0 0 26px rgba(0, 0, 0, 0.85),
-    inset 0 0 10px color-mix(in srgb, var(--dial) 12%, transparent);
+    0 6px 22px rgba(0, 0, 0, 0.5),
+    0 0 34px color-mix(in srgb, var(--dial) 30%, transparent),
+    inset 0 2px 3px color-mix(in srgb, var(--dial) 22%, transparent),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.7),
+    inset 0 0 30px rgba(0, 0, 0, 0.85),
+    inset 0 0 12px color-mix(in srgb, var(--dial) 12%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
+@media (hover: hover) {
+  .launch-btn:hover {
+    transform: scale(1.04);
+    box-shadow:
+      0 8px 26px rgba(0, 0, 0, 0.55),
+      0 0 46px color-mix(in srgb, var(--dial) 42%, transparent),
+      inset 0 2px 3px color-mix(in srgb, var(--dial) 28%, transparent),
+      inset 0 -6px 14px rgba(0, 0, 0, 0.7),
+      inset 0 0 30px rgba(0, 0, 0, 0.82),
+      inset 0 0 14px color-mix(in srgb, var(--dial) 16%, transparent);
+  }
+}
+
+.launch-btn:active,
 .launch-btn.pressing {
-  transform: scale(0.92);
+  transform: scale(0.9);
+  transition: transform 0.07s ease, box-shadow 0.07s ease;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 22px color-mix(in srgb, var(--dial) 26%, transparent),
+    inset 0 4px 12px rgba(0, 0, 0, 0.85),
+    inset 0 0 30px rgba(0, 0, 0, 0.9),
+    inset 0 0 10px color-mix(in srgb, var(--dial) 18%, transparent);
 }
 
 .launch-count {
@@ -882,13 +950,13 @@ body::after {
   }
 
   .launch-btn {
-    width: 92px;
-    height: 92px;
-    font-size: 13px;
+    width: 128px;
+    height: 128px;
+    font-size: 17px;
   }
 
   .dial-ticks,
-  .dial-sweep { inset: -11px; }
+  .dial-sweep { inset: -13px; }
 }
 
 @media (max-width: 480px) {
@@ -935,11 +1003,11 @@ body::after {
   }
 
   .launch-btn {
-    width: 74px;
-    height: 74px;
-    font-size: 11px;
+    width: 108px;
+    height: 108px;
+    font-size: 15px;
   }
 
   .dial-ticks,
-  .dial-sweep { inset: -8px; }
+  .dial-sweep { inset: -10px; }
 }
