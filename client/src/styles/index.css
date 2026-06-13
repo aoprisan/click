@@ -491,16 +491,7 @@ body::after {
   align-items: center;
   gap: 8px;
   --dial: var(--amber);
-  --btn-size: 172px;
-  --btn-font: 23px;
   animation: bootIn 0.5s 0.3s both;
-  transition: bottom 0.35s ease, right 0.35s ease;
-}
-
-/* Panels hidden → give the action button room to grow. */
-.click-button-area.expanded {
-  --btn-size: 256px;
-  --btn-font: 34px;
 }
 
 .click-button-area.mode-spectator { --dial: var(--teal); }
@@ -548,8 +539,8 @@ body::after {
 }
 
 .launch-btn {
-  width: var(--btn-size, 172px);
-  height: var(--btn-size, 172px);
+  width: 172px;
+  height: 172px;
   border-radius: 50%;
   border: 2px solid var(--dial);
   background:
@@ -557,7 +548,7 @@ body::after {
     radial-gradient(circle at 38% 30%, #2a1e08, #130e06 55%, #070504);
   color: var(--dial);
   font-family: var(--font-stencil);
-  font-size: var(--btn-font, 23px);
+  font-size: 23px;
   letter-spacing: 0.1em;
   text-shadow: 0 0 12px color-mix(in srgb, var(--dial) 80%, transparent);
   box-shadow:
@@ -571,12 +562,7 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.18s ease,
-    width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-    height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-    font-size 0.35s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
@@ -961,13 +947,12 @@ body::after {
   .click-button-area {
     bottom: 20px;
     right: 16px;
-    --btn-size: 128px;
-    --btn-font: 17px;
   }
 
-  .click-button-area.expanded {
-    --btn-size: 200px;
-    --btn-font: 26px;
+  .launch-btn {
+    width: 128px;
+    height: 128px;
+    font-size: 17px;
   }
 
   .dial-ticks,
@@ -1015,13 +1000,12 @@ body::after {
   .click-button-area {
     bottom: 16px;
     right: 10px;
-    --btn-size: 108px;
-    --btn-font: 15px;
   }
 
-  .click-button-area.expanded {
-    --btn-size: min(180px, 60vw);
-    --btn-font: 24px;
+  .launch-btn {
+    width: 108px;
+    height: 108px;
+    font-size: 15px;
   }
 
   .dial-ticks,

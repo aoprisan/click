@@ -289,7 +289,6 @@ export default function App() {
         rateLimited={rateLimited}
         gameMode={gameMode}
         multiplier={multiplier}
-        expanded={hudHidden}
       />
 
       <ConnectionStatus state={ws.connectionState} />
