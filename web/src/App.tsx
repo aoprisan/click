@@ -31,6 +31,7 @@ export default function App() {
   const [booted, setBooted] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [arcs, setArcs] = useState<TradeArc[]>([])
+  const [hudHidden, setHudHidden] = useState(false)
   const toastSeq = useRef(0)
   const arcSeq = useRef(0)
   const lastProdToast = useRef(0)
@@ -148,6 +149,18 @@ export default function App() {
         <span className="logo-sub">CITY ECONOMY · V2</span>
       </div>
 
+      {booted && (
+        <button
+          className={`hud-toggle${hudHidden ? ' collapsed' : ''}`}
+          onClick={() => setHudHidden(h => !h)}
+          aria-pressed={hudHidden}
+          title={hudHidden ? 'Show panels' : 'Hide panels'}
+        >
+          <span className="hud-toggle-icon" aria-hidden="true">{hudHidden ? '▣' : '▢'}</span>
+          {hudHidden ? 'Show panels' : 'Hide panels'}
+        </button>
+      )}
+
       <Globe
         cities={cities}
         homeCityId={homeId}
@@ -156,15 +169,15 @@ export default function App() {
         onCityClick={c => setSelectedCityId(c.id)}
       />
 
-      {booted && cities.length > 0 && <WorldReadout cities={cities} />}
+      {!hudHidden && booted && cities.length > 0 && <WorldReadout cities={cities} />}
 
-      <Leaderboard cities={cities} homeCityId={homeId} onSelect={c => setSelectedCityId(c.id)} />
+      {!hudHidden && <Leaderboard cities={cities} homeCityId={homeId} onSelect={c => setSelectedCityId(c.id)} />}
 
-      {selectedCity && <CityPanel city={selectedCity} isHome={selectedCity.id === homeId} />}
+      {!hudHidden && selectedCity && <CityPanel city={selectedCity} isHome={selectedCity.id === homeId} />}
 
       {homeCity && (
         <>
-          <div className="hud-left">
+          {!hudHidden && <div className="hud-left">
             <BuildPanel
               city={homeCity}
               activeBuildingId={activeBuildingId}
@@ -172,9 +185,9 @@ export default function App() {
               onBuild={id => game.startBuild(id)}
               onUpgrade={id => game.startUpgrade(id)}
             />
-          </div>
+          </div>}
 
-          <div className="right-stack">
+          {!hudHidden && <div className="right-stack">
             <MarketPanel
               city={homeCity}
               onSell={(r, q) => game.sellToMarket(r, q)}
@@ -198,7 +211,7 @@ export default function App() {
                 onMove={id => game.moveHomeCity(id)}
               />
             )}
-          </div>
+          </div>}
 
           <ClickButton
             onClick={handleClick}
