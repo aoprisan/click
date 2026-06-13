@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { playClickSound, haptic } from '../sound'
 
 interface Particle { id: number; dx: number; dy: number }
 
@@ -15,14 +16,20 @@ interface ClickButtonProps {
   multiplier: number
   /** an autoclicker employee is working. */
   autoclicking: boolean
+  /** HUD panels are hidden — grow the button to fill the freed space. */
+  expanded?: boolean
 }
 
-export default function ClickButton({ onClick, totalUnits, activeBuildingName, unitsPerClick, meter, blocked, multiplier, autoclicking }: ClickButtonProps) {
+export default function ClickButton({ onClick, totalUnits, activeBuildingName, unitsPerClick, meter, blocked, multiplier, autoclicking, expanded }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
 
   const handleClick = useCallback(() => {
+    // Tactile feedback: a boosted click gets a punchier, higher-pitched tone.
+    playClickSound(multiplier > 1 ? 1.18 : 1)
+    haptic(multiplier > 1 ? 18 : 12)
+
     setPressing(true)
     setTimeout(() => setPressing(false), 100)
     const id = Date.now()
@@ -36,10 +43,10 @@ export default function ClickButton({ onClick, totalUnits, activeBuildingName, u
     setParticles(prev => [...prev, ...newParticles])
     setTimeout(() => setParticles(prev => prev.filter(p => !newParticles.some(np => np.id === p.id))), 500)
     onClick()
-  }, [onClick])
+  }, [onClick, multiplier])
 
   return (
-    <div className={`click-button-area mode-${multiplier > 1 ? 'warrior' : 'builder'}`}>
+    <div className={`click-button-area mode-${multiplier > 1 ? 'warrior' : 'builder'}${expanded ? ' expanded' : ''}`}>
       <span className="launch-city">
         {activeBuildingName}
         {multiplier > 1 && <span className="orange"> · ⚡{multiplier}×</span>}

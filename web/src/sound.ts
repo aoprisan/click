@@ -22,8 +22,8 @@ function getContext(): AudioContext | null {
 }
 
 /**
- * Play a short, satisfying click tone. `pitch` lets warriors get a punchier
- * sound than builders. Safe to call rapidly — each click is its own short voice.
+ * Play a short, satisfying click tone. `pitch` lets boosted clicks get a
+ * punchier sound. Safe to call rapidly — each click is its own short voice.
  */
 export function playClickSound(pitch = 1): void {
   const audio = getContext()

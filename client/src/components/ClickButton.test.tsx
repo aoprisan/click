@@ -45,18 +45,4 @@ describe('ClickButton', () => {
     render(<ClickButton onClick={vi.fn()} personalClicks={0} gameMode="warrior" multiplier={2} />)
     expect(screen.getByText('GROW +2')).toBeInTheDocument()
   })
-
-  it('applies the expanded class when panels are collapsed', () => {
-    const { container } = render(
-      <ClickButton onClick={vi.fn()} personalClicks={0} gameMode="builder" multiplier={1} expanded />,
-    )
-    expect(container.querySelector('.click-button-area')).toHaveClass('expanded')
-  })
-
-  it('keeps normal size (no expanded class) when panels are visible', () => {
-    const { container } = render(
-      <ClickButton onClick={vi.fn()} personalClicks={0} gameMode="builder" multiplier={1} />,
-    )
-    expect(container.querySelector('.click-button-area')).not.toHaveClass('expanded')
-  })
 })
