@@ -10,6 +10,7 @@ import Globe from './components/Globe'
 import Onboarding from './components/Onboarding'
 import CityPanel from './components/CityPanel'
 import BuildPanel from './components/BuildPanel'
+import TechTreeOverlay from './components/TechTreeOverlay'
 import Tutorial from './components/Tutorial'
 import MarketPanel from './components/MarketPanel'
 import TradePanel from './components/TradePanel'
@@ -32,6 +33,7 @@ export default function App() {
   const [now, setNow] = useState(() => Date.now())
   const [arcs, setArcs] = useState<TradeArc[]>([])
   const [hudHidden, setHudHidden] = useState(false)
+  const [techTreeOpen, setTechTreeOpen] = useState(false)
   const toastSeq = useRef(0)
   const arcSeq = useRef(0)
   const lastProdToast = useRef(0)
@@ -220,6 +222,7 @@ export default function App() {
               onSelectActive={setActiveBuildingId}
               onBuild={id => game.startBuild(id)}
               onUpgrade={id => game.startUpgrade(id)}
+              onOpenTechTree={() => setTechTreeOpen(true)}
             />
           </div>}
 
@@ -235,6 +238,14 @@ export default function App() {
             expanded={hudHidden}
           />
         </>
+      )}
+
+      {techTreeOpen && homeCity && (
+        <TechTreeOverlay
+          city={homeCity}
+          onBuild={id => game.startBuild(id)}
+          onClose={() => setTechTreeOpen(false)}
+        />
       )}
 
       {homeCity && operator && <Tutorial city={homeCity} operator={operator} />}

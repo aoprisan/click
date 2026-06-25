@@ -103,6 +103,64 @@
 }
 .branch-tab.sel { border-color: var(--amber); color: var(--amber); }
 
+/* ---- tech tree overlay (the construct catalog, full-screen) ---- */
+.tech-open-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--amber);
+  font-family: var(--font-stencil);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 9px;
+  cursor: pointer;
+}
+.tech-open-btn:hover { border-color: var(--amber); background: rgba(255, 176, 0, 0.07); }
+
+.tech-overlay {
+  position: absolute;
+  inset: 0;
+  /* above the HUD + tutorial card (150), below the PWA system prompt (200). */
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+  background: rgba(2, 4, 2, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.tech-modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 20px;
+  width: 820px;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tech-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Roomy multi-column grid with its own scroll — the whole point of the overlay. */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+  align-content: start;
+}
+
 /* ---- right-hand HUD column: leaderboard + market + trade + shop ---- */
 .right-stack {
   position: absolute;

@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import type { City } from '../types'
 import {
-  ALL_BUILDINGS, ALL_BRANCHES, getBuilding, buildCost, upgradeCost,
-  constructionUnits, formatRecipe, tierUnlockPopulation,
+  getBuilding, buildCost, upgradeCost, constructionUnits, formatRecipe,
 } from '../game/catalog'
-import { isOperational, isBuildingUnlocked } from '../game/economy'
+import { isOperational } from '../game/economy'
 
 interface Props {
   city: City
@@ -12,22 +10,16 @@ interface Props {
   onSelectActive: (defId: string) => void
   onBuild: (defId: string) => void
   onUpgrade: (defId: string) => void
+  onOpenTechTree: () => void
 }
 
-export default function BuildPanel({ city, activeBuildingId, onSelectActive, onBuild, onUpgrade }: Props) {
-  const [branch, setBranch] = useState<string>('Civic')
-
-  const builtIds = new Set(city.buildings.map(b => b.defId))
-  // Production buildings are one-per-city (upgrade to grow); residential blocks
-  // stack, so housing always stays buildable — it's the population lever (§3).
-  const catalog = ALL_BUILDINGS.filter(b => b.branch === branch && (b.isResidential || !builtIds.has(b.id)))
-
+export default function BuildPanel({ city, activeBuildingId, onSelectActive, onBuild, onUpgrade, onOpenTechTree }: Props) {
   return (
     <div className="panel build-panel bracketed">
       <span className="panel-label panel-label--amber">Buildings</span>
 
       {/* operational + in-progress buildings — click to aim your clicks */}
-      <div className="build-list scroll-y" style={{ maxHeight: '24vh', marginTop: 6 }}>
+      <div className="build-list scroll-y" style={{ maxHeight: '46vh', marginTop: 6 }}>
         {city.buildings.map(b => {
           const def = getBuilding(b.defId)!
           const op = isOperational(b)
@@ -61,37 +53,8 @@ export default function BuildPanel({ city, activeBuildingId, onSelectActive, onB
       </div>
 
       <hr className="rule" />
-      <span className="panel-label">Construct</span>
-      <div className="branch-tabs">
-        {ALL_BRANCHES.map(b => (
-          <button key={b} className={`branch-tab${b === branch ? ' sel' : ''}`} onClick={() => setBranch(b)}>
-            {b.split(' ')[0]}
-          </button>
-        ))}
-      </div>
-      <div className="build-list scroll-y" style={{ maxHeight: '22vh' }}>
-        {catalog.length === 0 && <span className="muted tiny">all built in this branch</span>}
-        {catalog.map(def => {
-          const cost = buildCost(def)
-          const afford = city.cash >= cost
-          const unlocked = isBuildingUnlocked(city, def)
-          return (
-            <div key={def.id} className={`build-row${unlocked ? '' : ' locked'}`}>
-              <div className="row">
-                <span className="build-name">{def.name}{def.tier > 0 ? ` · T${def.tier}` : ''}</span>
-                {unlocked ? (
-                  <button className="mini-btn buy" disabled={!afford} onClick={() => onBuild(def.id)}>${cost}</button>
-                ) : (
-                  <span className="mini-btn locked-tag" title={`unlocks at population ${tierUnlockPopulation(def.tier).toLocaleString()}`}>
-                    🔒 {tierUnlockPopulation(def.tier).toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <span className="build-recipe">{formatRecipe(def)}</span>
-            </div>
-          )
-        })}
-      </div>
+      {/* The full construct catalog lives in a roomy overlay (the tech tree). */}
+      <button className="tech-open-btn" onClick={onOpenTechTree}>＋ Construct · Tech Tree</button>
     </div>
   )
 }
