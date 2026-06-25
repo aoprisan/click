@@ -1,9 +1,34 @@
 # What's next — Global Conflict v2 prototype
 
-The `web/` prototype now covers the design's MVP core loop **and** the §8
+The `web/` prototype now covers a first MVP core loop **and** the §8
 monetization layer, all client-side with bot rivals. This is the roadmap from
 here, roughly in priority order. See `README.md` for how it's built and
 `../docs/CITY_DESIGN_OVERVIEW.md` for the full design.
+
+## Next — core-loop redesign (highest priority)
+
+The population / food / happiness model has been revised; the authoritative
+spec is [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md). The code still implements
+the old model — this migration comes before further balance work:
+
+1. **Population = Σ building worker amounts.** Add a fixed worker amount per
+   building/level in `catalog.ts` (residential = 0). Replace `growPopulation()`
+   in `game/population.ts` with a derived sum; population becomes monotonic — drop
+   the happiness-driven growth and the `<30%` shedding entirely.
+2. **Food consumed per click.** Remove the food drain from `consumeNeeds()`
+   (`game/happiness.ts`); consume **1 food/click** in `MockGameClient.click()`
+   and `runAutoclicker()`. Measure food in **units** via a per-good value table
+   over `FOOD_GOODS`, drained cheapest-good-first, floored at 0.
+3. **Happiness = 50% housing + 50% food.** `housingScore = min(1, capacity/pop)`,
+   `foodScore = min(1, foodUnits/pop)`. Park the staged six-section model
+   (energy/employment/fun/luxuries) behind a flag — it returns once the tech tree
+   is balanced.
+4. **Click efficiency ∝ happiness** — already in place (`clickEffectiveness`);
+   keep.
+5. **No ambient ticks for the player's city.** Only bots stay on the background
+   timer (a live planet); the player's city advances purely on clicks.
+6. **Re-balance.** Re-run `npm run balance` and update the harness + sane-band
+   asserts (`game/balanceHarness*.ts`) against the new numbers.
 
 ## Done so far
 

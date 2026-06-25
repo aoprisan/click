@@ -149,6 +149,13 @@ Three layers, designed so the in-browser mock can later be swapped for a server 
 
 Click → activity units (10 at full happiness, fewer as it drops) → fed to your **active building** (construction first, then production batches that consume inputs — buying shortfalls from the global market — and yield outputs). Residential blocks raise capacity → population grows → more needs. Happiness (housing + food at first; energy/employment/fun/luxuries unlock with size) scales click effectiveness, so a one-factory city stalls. Sell surplus to the game-run global market or list it for other cities; bots do the same. Tech tiers unlock by population (`tierUnlockPopulation()`: 1k/5k/20k/50k).
 
+> **Note:** the population/food/happiness model above is being **redesigned** —
+> population = sum of building worker amounts (monotonic; residential = housing
+> only), food consumed per click, happiness = 50% housing + 50% food. The above
+> still describes the current code; the target spec is
+> [`docs/CORE_LOOP.md`](docs/CORE_LOOP.md) and the migration is the top item in
+> `web/WHATS_NEXT.md`.
+
 ## Monetization (design §8)
 
 A hard-currency ("Bucks") shop in `game/shop.ts` + `components/ShopPanel.tsx`: energy-drink click multipliers (a 2×/5×/10× × duration matrix), autoclicker "employees" (auto-click at the *same* capped rate as a human — comfort, not advantage), and air tickets (move home city; the old one reverts to a bot). No real payments — the operator just starts with `STARTING_BUCKS`. Player-to-player gifting is real and free (`game/market.ts` → `giftResource`).

@@ -8,6 +8,15 @@ sibling `foom` project.
 
 The v1 game (`../client`, `../*.go`) is untouched; this lives entirely under `web/`.
 
+> **⚠ Core-loop redesign pending.** The population / food / happiness model has
+> been revised — population is the sum of building worker amounts (monotonic;
+> residential = housing only), food is consumed **per click**, and happiness is
+> 50% housing + 50% food. The authoritative spec is
+> [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md). **The code below still
+> implements the previous model** (population eases toward residential capacity,
+> ambient food drain, six-section happiness); migration is the top item in
+> [`WHATS_NEXT.md`](WHATS_NEXT.md).
+
 ## Run
 
 ```bash

@@ -2,6 +2,15 @@
 
 *Design overview — revised after Paul's review, June 2026. Incorporates his comments and inline edits; remaining open items are in §10.*
 
+> **Core-loop update (June 2026).** The population / housing / food / happiness
+> mechanics in §3 have since been refined into a precise, click-driven spec:
+> population is the **sum of every building's worker amount** (residential = 0,
+> so housing no longer *is* population — it only houses it), food is consumed
+> **per click** rather than ambiently, and happiness is **50% housing + 50%
+> food** with the deeper subsections dormant until the tech tree is balanced.
+> See [`CORE_LOOP.md`](CORE_LOOP.md) for the authoritative rules; §3 below is
+> updated to match.
+
 ---
 
 ## 1. The pitch
@@ -31,8 +40,8 @@ Every player has a **home city** — a real city on the globe, shared with every
 
 Each city has:
 
-- **Population** — the headline stat, and also the workforce: population staffs buildings. Population is **not** the number of players; it is a direct function of the residential buildings in the city. Each residential building built brings a specific number of new population — that is how the city grows. (Each new residential building also creates extra requirements: more food, more energy, and so on.)
-- **Happiness (0–100%)** — a weighted score across subsections: **housing, food, energy, employment, fun, luxuries**. At the start only housing and food count (50%/50%, everything else 0%). Subsections switch on at population growth triggers — e.g. at 1,000 population energy joins (weights 40/40/20); at 5,000 employment joins (30/30/20/20); and so on. Requirements get more sophisticated as the city grows, so there is always a next problem to solve. Specific products meet specific needs.
+- **Population = the workforce.** Population is **not** the number of players, and it is **not** driven by residential buildings. Every building and every upgrade carries a **fixed worker amount**; population is the **sum of those worker amounts** across everything built. Building and upgrading **workplaces** (mines, farms, factories…) is how the city grows. Because buildings are never removed, **population is monotonic — it never goes down.** Residential blocks carry 0 workers: they don't add population, they *house* it (see Happiness). See [`CORE_LOOP.md`](CORE_LOOP.md) §1.
+- **Happiness (0–100%) = 50% housing + 50% food** (for now). *Housing score* = the fraction of the population that has a home (`min(1, housing capacity / population)`); *food score* = stored food units vs population (`min(1, food / population)`). The deeper subsections — **energy, employment, fun, luxuries** — are designed (they switch on at population growth triggers, so requirements get more sophisticated as the city grows) but are **dormant**: they re-enter the weighting once the tech tree is checked and balanced. See [`CORE_LOOP.md`](CORE_LOOP.md) §2–§4.
 - **Resource inventory, buildings, and a cash account** — the city's shared economy, directed by its residents. Cash comes in from selling surplus on the market (and, later, taxes scaled by happiness).
 
 **Clicks produce activity units.** One base, unmodified click = **10 units of activity**; everything a click does (production, construction) is denominated in units. Multipliers scale this — a 2× energy drink makes one click worth 20 units.
@@ -40,7 +49,7 @@ Each city has:
 Two rules make the loop self-balancing:
 
 - **Happiness scales click effectiveness, on thresholds.** At 90–100% happiness an unmodified click = 10 units of activity; at 80–90% it's 9 units; and so on down. An unhappy population works badly. Neglect needs and growth stalls; this is the valve that forces players to build a rounded city rather than one giant factory.
-- **Residential capacity gates population.** Build housing → population grows → more workers (and more needs) → more production. This is SimCity BuildIt's proven engine, and it gives population a *cause* instead of v1's bare counter.
+- **Clicks consume food; housing must keep pace with workers.** Each click that does work eats **1 unit of food** (a worker is eating) — the only thing that draws food down. As you build workplaces, population (workers) rises; if it outgrows housing, the surplus is homeless and happiness drops. So growth has two standing costs — keep workers fed and housed — and both feed back through happiness into click effectiveness.
 
 ## 4. Buildings and production
 
@@ -98,7 +107,7 @@ That's the whole monetization story at MVP. If it flies, the obvious next levers
 
 ## 10. Scope
 
-**MVP:** shared home cities generated per country (biggest cities, more for bigger countries) with nearest-city allocation and 1 free air ticket; residential-building-driven population; needs/happiness subsections with population growth triggers; pay-cash-then-activity-units construction and upgrades; production chains and country resources from the two data files (§4); game-run global market for all resources + player-priced city-to-city trading; soft click throttle tuned from data; hard-currency shop (energy drinks, autoclickers/employees, air tickets) with gifting.
+**MVP:** shared home cities generated per country (biggest cities, more for bigger countries) with nearest-city allocation and 1 free air ticket; worker-driven population (sum of building worker amounts; never decreases) with housing that must keep pace; 50% housing + 50% food happiness (deeper subsections dormant until the tech tree is balanced — §3, [`CORE_LOOP.md`](CORE_LOOP.md)); food consumed per click; pay-cash-then-activity-units construction and upgrades; production chains and country resources from the two data files (§4); game-run global market for all resources + player-priced city-to-city trading; soft click throttle tuned from data; hard-currency shop (energy drinks, autoclickers/employees, air tickets) with gifting.
 
 **Later:** battle pass, transport (capacity/mass/speed-cost tradeoffs between cities), deeper tech-tree tiers and chain tuning, city-vs-city competition without missiles (trade wars, embargoes), seasons and leaderboards, alliances, further monetization (cosmetics, market fees).
 
