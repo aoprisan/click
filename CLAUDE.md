@@ -4,7 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Global Conflict — a competitive multiplayer game with a 3D globe. Players pick a city, grow its population through clicking, earn missiles via achievements, and attack rival cities. Features three player modes (Spectator/Builder/Warrior), a missile combat system, achievement tracking, and a subscription model.
+Global Conflict — a competitive game built around a 3D globe and clicking. The repo holds **two versions that coexist on `main`**:
+
+- **v1** — the original real-time multiplayer game: a Go backend + React client where players grow a city's population, earn missiles, and attack rivals. Lives at the repo root + `client/`.
+- **v2** — the current prototype: a **client-only city-building PWA** (no backend) where clicks *build* instead of destroy. Lives entirely under `web/` and is what's deployed to GitHub Pages at https://aoprisan.github.io/click/.
+
+The two are independent — v2 was a design pivot and does not share code with v1. When working in `web/`, treat v1 (`client/`, `*.go`) as untouched, and vice versa.
+
+| | **v1** (root + `client/`) | **v2** (`web/`) |
+|---|---|---|
+| Kind | Real-time multiplayer | Client-only PWA, single player + bots |
+| Stack | Go + React + WebSocket + SQLite | React + Vite, all logic in-browser |
+| State | SQLite on the server | `localStorage` (key `gc.save.v1`) |
+| Dev URL | `:5173` (client) → `:8080` (server) | `:5174` |
+| Deployed | not deployed here | GitHub Pages (`aoprisan.github.io/click/`) |
+
+---
+
+# v1 — Global Conflict (Go backend + React, multiplayer)
+
+A competitive multiplayer game with a 3D globe. Players pick a city, grow its population through clicking, earn missiles via achievements, and attack rival cities. Features three player modes (Spectator/Builder/Warrior), a missile combat system, achievement tracking, and a subscription model.
 
 ## Stack
 
@@ -85,3 +104,59 @@ Run both `make dev-server` and `make dev-client` for local development.
 Schema uses migrations (`migrations.go`). Key tables: `cities`, `users`, `missiles`, `subscriptions`, `city_snapshots`, `schema_version`.
 
 Achievements are NOT stored — they are computed from user fields (`total_clicks`, `best_10s`, `best_1day`, `last_cumulative_threshold`).
+
+---
+
+# v2 — Global Conflict v2 (client-only city-building PWA)
+
+The current prototype, living entirely under `web/` (package `global-conflict-v2`). A standalone pilot of the [v2 city design](docs/CITY_DESIGN_OVERVIEW.md): clicks **build** instead of destroy. There is **no backend** — the whole world (your city plus ~190 bot-controlled rivals) runs in the browser via a single `MockGameClient`, persisted to `localStorage` (key `gc.save.v1`). This is what's deployed to GitHub Pages.
+
+See `web/README.md` for the fullest description and `web/WHATS_NEXT.md` for the roadmap.
+
+## Stack
+
+- **Frontend**: React 19 + TypeScript, Vite, Three.js globe, `vite-plugin-pwa` (offline service worker)
+- **No backend / no auth** — all state is in-browser; identity is implicit (single local player)
+- **Tests**: Vitest (jsdom) over the pure game-logic modules
+
+## Commands (run from `web/`)
+
+```bash
+cd web
+npm install         # first time only
+npm run dev         # Vite dev server on :5174 (or next free port)
+npm test            # vitest — pure game-logic suites
+npm run balance     # headless balance harness — band report + sane-band asserts
+npm run build       # tsc -b + vite build (emits PWA service worker)
+npm run preview     # serve the production build locally
+npm run gen-catalog # regenerate src/game/catalog.data.ts from ../docs/*.csv
+```
+
+No `make seed`, no Go backend, no second terminal — just `npm run dev`.
+
+**Running a single test**: `cd web && npx vitest run src/game/economy.test.ts`
+
+## Architecture
+
+Three layers, designed so the in-browser mock can later be swapped for a server without touching the UI:
+
+- **`src/client/`** — the seam. `GameClient.ts` is the interface; `MockGameClient.ts` holds all state, a `setInterval` tick loop, bot simulation, and `localStorage` persistence. A future `LiveGameClient` (fetch + WebSocket against a Go backend) drops in here.
+- **`src/game/`** — pure, unit-tested logic (no React, no I/O): `catalog` (buildings/prices, with `catalog.data.ts` generated from the CSVs), `economy` (construction + production), `population`, `happiness`, `civic` (per-capita needs), `market` (global + city-to-city offers + gifting), `bots`, `throttle` (click-rate cap), `shop` (Bucks monetization), `seedCities`, and `balanceHarness` (headless deterministic world sim).
+- **`src/components/`** — React UI in the v1 "tactical console" aesthetic: `Globe`, `BuildPanel`, `CityPanel`, `MarketPanel`, `TradePanel`, `ShopPanel`, `Leaderboard`, `ClickButton` (the GROW dial + throttle meter), `Tutorial`/`Onboarding`, `ToastSystem`, `PwaPrompts`, `ErrorBoundary`.
+- **`src/hooks/`** — `useGameClient` (wires the client into React state), `usePwaUpdate` (service-worker update prompt).
+
+## The core loop
+
+Click → activity units (10 at full happiness, fewer as it drops) → fed to your **active building** (construction first, then production batches that consume inputs — buying shortfalls from the global market — and yield outputs). Residential blocks raise capacity → population grows → more needs. Happiness (housing + food at first; energy/employment/fun/luxuries unlock with size) scales click effectiveness, so a one-factory city stalls. Sell surplus to the game-run global market or list it for other cities; bots do the same. Tech tiers unlock by population (`tierUnlockPopulation()`: 1k/5k/20k/50k).
+
+## Monetization (design §8)
+
+A hard-currency ("Bucks") shop in `game/shop.ts` + `components/ShopPanel.tsx`: energy-drink click multipliers (a 2×/5×/10× × duration matrix), autoclicker "employees" (auto-click at the *same* capped rate as a human — comfort, not advantage), and air tickets (move home city; the old one reverts to a bot). No real payments — the operator just starts with `STARTING_BUCKS`. Player-to-player gifting is real and free (`game/market.ts` → `giftResource`).
+
+## Tuning knobs
+
+`game/throttle.ts` (click cap), `game/civic.ts` (`FOOD_PER_CAPITA`/`ENERGY_PER_CAPITA`, residential cost/capacity), `game/catalog.ts` (`buildCost`/`constructionUnits`/`workPerBatch`/`tierUnlockPopulation` curves), `game/shop.ts` (Bucks prices, durations, `STARTING_BUCKS`), `scripts/gen-catalog.mjs` (resource pricing). Watch `npm run balance` for sane bands after changes.
+
+## Deployment
+
+`.github/workflows/deploy-pages.yml` builds `web/` and publishes to GitHub Pages on every push to `main` that touches `web/**` (or via manual `workflow_dispatch`). The Pages build sets `VITE_BASE=/click/` so the app serves correctly from the repo subpath; locally `base` defaults to `/`. The v1 client/backend are not part of this deploy.
