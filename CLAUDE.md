@@ -147,14 +147,7 @@ Three layers, designed so the in-browser mock can later be swapped for a server 
 
 ## The core loop
 
-Click → activity units (10 at full happiness, fewer as it drops) → fed to your **active building** (construction first, then production batches that consume inputs — buying shortfalls from the global market — and yield outputs). Residential blocks raise capacity → population grows → more needs. Happiness (housing + food at first; energy/employment/fun/luxuries unlock with size) scales click effectiveness, so a one-factory city stalls. Sell surplus to the game-run global market or list it for other cities; bots do the same. Tech tiers unlock by population (`tierUnlockPopulation()`: 1k/5k/20k/50k).
-
-> **Note:** the population/food/happiness model above is being **redesigned** —
-> population = sum of building worker amounts (monotonic; residential = housing
-> only), food consumed per click, happiness = 50% housing + 50% food. The above
-> still describes the current code; the target spec is
-> [`docs/CORE_LOOP.md`](docs/CORE_LOOP.md) and the migration is the top item in
-> `web/WHATS_NEXT.md`.
+The game is **click-driven** (one click = one tick; only bots run on a background timer — see [`docs/CORE_LOOP.md`](docs/CORE_LOOP.md)). A click → activity units (`clickEffectiveness(happiness)` × any drink multiplier) → fed to the **active building** (construction first, then production batches that consume inputs — buying market shortfalls — and yield outputs) → and eats **1 food**. Building/upgrading **workplaces** raises **population** (= Σ building worker amounts; monotonic — never decreases); residential blocks add **housing**. Happiness = **50% housing** (are workers housed?) + **50% food** (food units vs population?) and scales click effectiveness, so a starving or homeless city builds slowly. Sell surplus to the game-run global market or list it for other cities; bots do the same. Tech tiers unlock by population (`tierUnlockPopulation()`: 1k/5k/20k/50k). The deeper happiness sections (energy/employment/fun/luxuries) are parked behind `DEEP_HAPPINESS` in `happiness.ts` until the tech tree is balanced.
 
 ## Monetization (design §8)
 
@@ -162,7 +155,7 @@ A hard-currency ("Bucks") shop in `game/shop.ts` + `components/ShopPanel.tsx`: e
 
 ## Tuning knobs
 
-`game/throttle.ts` (click cap), `game/civic.ts` (`FOOD_PER_CAPITA`/`ENERGY_PER_CAPITA`, residential cost/capacity), `game/catalog.ts` (`buildCost`/`constructionUnits`/`workPerBatch`/`tierUnlockPopulation` curves), `game/shop.ts` (Bucks prices, durations, `STARTING_BUCKS`), `scripts/gen-catalog.mjs` (resource pricing). Watch `npm run balance` for sane bands after changes.
+`game/catalog.ts` (`workersForTier` population-per-level, `buildCost`/`constructionUnits`/`workPerBatch`/`tierUnlockPopulation` curves), `game/civic.ts` (`FOOD_UNIT_VALUE`, `RESIDENTIAL` cost/capacity), `game/happiness.ts` (`FOOD_PER_CLICK`, `DEEP_HAPPINESS` flag), `game/throttle.ts` (click cap), `game/shop.ts` (Bucks prices, durations, `STARTING_BUCKS`), `scripts/gen-catalog.mjs` (resource pricing). Watch `npm run balance` for sane bands after changes.
 
 ## Deployment
 

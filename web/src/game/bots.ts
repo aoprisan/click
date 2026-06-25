@@ -5,8 +5,8 @@
 import type { City, GameEvent } from '../types'
 import { ALL_BUILDINGS, getBuilding, buildCost } from './catalog'
 import { applyUnits, startBuild, isOperational, findBuilding, isBuildingUnlocked } from './economy'
-import { consumeNeeds, refreshHappiness } from './happiness'
-import { growPopulation, capacityOf } from './population'
+import { drainFood, refreshHappiness } from './happiness'
+import { syncCity, capacityOf } from './population'
 import { marketSell, postOffer, takeOffer, addInv } from './market'
 
 export interface BotContext {
@@ -35,9 +35,11 @@ export function stepBot(city: City, ctx: BotContext): void {
 
   if (ctx.rand() < 0.18) botConstruct(city, ctx)
 
-  consumeNeeds(city)
-  refreshHappiness(city)
-  growPopulation(city)
+  // Workers eat for the work this step did (CORE_LOOP §3): one meal per building
+  // operated, mirroring the player's 1-food-per-click. Then re-derive population
+  // (a completed build added workers) and re-score happiness.
+  drainFood(city, city.buildings.length)
+  syncCity(city)
   refreshHappiness(city)
 
   botTrade(city, ctx)

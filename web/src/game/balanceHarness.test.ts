@@ -46,32 +46,35 @@ describe('balance harness — sane bands (steady cadence)', () => {
     expect(last.cash.max).toBeLessThan(1_000_000)
   })
 
-  it('keeps happiness in a livable band — neither collapsed nor pinned', () => {
-    expect(last.happiness.median).toBeGreaterThan(40)
-    expect(last.happiness.median).toBeLessThan(95)
+  it('keeps happiness healthy — fed, housed cities are content', () => {
+    // With the deep sections dormant (CORE_LOOP §4) happiness is just housing +
+    // food, so a city that keeps both satisfied is legitimately near 100 — the
+    // old "mid-band valve" was exactly the parked energy/fun/luxuries sections.
+    // We assert the world stays content and no city collapses to misery.
+    expect(last.happiness.median).toBeGreaterThan(50)
+    expect(last.happiness.median).toBeLessThanOrEqual(100)
     expect(last.happiness.min).toBeGreaterThan(10)
   })
 
   it('lets a diligent clicking player grow their city', () => {
     const player = r.player!
-    // Accra starts at 265; a competent player should clear well past that.
-    expect(player.population).toBeGreaterThan(800)
+    // Accra starts ~100 (its seeded workplaces); a competent player builds and
+    // upgrades workplaces well past that in 60 ticks (first-draft numbers).
+    expect(player.population).toBeGreaterThan(400)
     expect(player.cash).toBeGreaterThanOrEqual(0)
     expect(player.happiness).toBeGreaterThan(40)
     expect(player.happiness).toBeLessThanOrEqual(100)
   })
 
-  it('rounds the city out past the energy stage without stalling', () => {
-    // A longer run carries the player through pop 1,000 (energy section on) and
-    // the tier-3 unlock. The cash-aware clicker should build a power plant and
-    // keep growing — energy/fun/luxuries are trade-driven, so happiness settles
-    // into a livable mid-band rather than pinning at 100 (the valve, by design).
+  it('keeps the player growing over a long run without stalling', () => {
+    // Population only ever rises (CORE_LOOP §1), so building and upgrading keeps
+    // compounding — a longer run should clear the 60-tick mark comfortably.
     const long = simulate({ seed: 1, ticks: 150, withPlayer: true })
     const p = long.player!
-    expect(p.population).toBeGreaterThan(1_500)
-    expect(p.buildings.some(b => b.defId === 'coal-power-station')).toBe(true)
-    expect(p.happiness).toBeGreaterThan(45)
-    expect(p.happiness).toBeLessThan(90)
+    expect(p.population).toBeGreaterThan(700)
+    expect(p.population).toBeGreaterThan(r.player!.population) // still growing past 60 ticks
+    expect(p.happiness).toBeGreaterThan(40)
+    expect(p.happiness).toBeLessThanOrEqual(100)
   })
 })
 

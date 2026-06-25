@@ -8,14 +8,12 @@ sibling `foom` project.
 
 The v1 game (`../client`, `../*.go`) is untouched; this lives entirely under `web/`.
 
-> **⚠ Core-loop redesign pending.** The population / food / happiness model has
-> been revised — population is the sum of building worker amounts (monotonic;
-> residential = housing only), food is consumed **per click**, and happiness is
-> 50% housing + 50% food. The authoritative spec is
-> [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md). **The code below still
-> implements the previous model** (population eases toward residential capacity,
-> ambient food drain, six-section happiness); migration is the top item in
-> [`WHATS_NEXT.md`](WHATS_NEXT.md).
+> **Core loop (click-driven model).** Population is the sum of building worker
+> amounts (monotonic; residential = housing only), food is consumed **1 unit per
+> click**, and happiness is 50% housing + 50% food (deeper sections dormant
+> behind a flag). The authoritative spec is
+> [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md); numbers are first-draft and
+> balance follow-ups live in [`WHATS_NEXT.md`](WHATS_NEXT.md).
 
 ## Run
 
@@ -45,11 +43,14 @@ npm run gen-catalog # regenerate src/game/catalog.data.ts from ../docs/*.csv
 
 Click → activity units (10 at full happiness, fewer as it drops) → fed to your
 **active building** (construction first, then production batches that consume
-inputs — buying shortfalls from the global market — and yield outputs).
-Residential blocks raise capacity → population grows → more needs. Happiness
-(housing + food at first, energy/employment/fun/luxuries unlocking with size)
-scales click effectiveness, so a one-factory city stalls. Sell surplus to the
-game-run global market or list it for other cities; bots do the same.
+inputs — buying shortfalls from the global market — and yield outputs). Every
+click also eats **1 food** (a worker is eating). Building/upgrading **workplaces**
+raises **population** (the sum of building worker amounts — it never goes down);
+residential blocks add **housing**. Happiness = 50% housing (are workers housed?)
++ 50% food (is food stocked vs population?), and happiness scales click
+effectiveness — so a starving or homeless city builds slowly. Sell surplus to the
+game-run global market or list it for other cities; bots do the same. See
+[`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md) for the full rules.
 
 ## Monetization (design §8)
 
@@ -70,8 +71,10 @@ Trade panel can send goods to any city for free (`game/market.ts` →
 ## Known tuning knobs (prototype)
 
 - `game/throttle.ts` — click rate cap.
-- `game/civic.ts` — `FOOD_PER_CAPITA` / `ENERGY_PER_CAPITA`, residential cost/capacity.
-- `game/catalog.ts` — `buildCost` / `constructionUnits` / `workPerBatch` curves.
+- `game/catalog.ts` — `workersForTier` (population per building level),
+  `buildCost` / `constructionUnits` / `workPerBatch` curves.
+- `game/civic.ts` — `FOOD_UNIT_VALUE` (food units per good), `RESIDENTIAL` cost/capacity.
+- `game/happiness.ts` — `FOOD_PER_CLICK`, `DEEP_HAPPINESS` flag (parks the deeper sections).
 - `game/shop.ts` — Bucks prices, durations, `STOCKPILE_MAX`, `STARTING_BUCKS`.
 - `scripts/gen-catalog.mjs` — resource pricing (`BASE`, `GROWTH`) and name aliases.
 

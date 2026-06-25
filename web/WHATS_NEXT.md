@@ -5,43 +5,34 @@ monetization layer, all client-side with bot rivals. This is the roadmap from
 here, roughly in priority order. See `README.md` for how it's built and
 `../docs/CITY_DESIGN_OVERVIEW.md` for the full design.
 
-## Next — core-loop redesign (highest priority)
+## Next — balance the new core loop
 
-The population / food / happiness model has been revised; the authoritative
-spec is [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md). The code still implements
-the old model — this migration comes before further balance work:
+The click-driven core loop ([`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md)) is
+implemented; the numbers are first-draft. Tune with `npm run balance`:
 
-1. **Population = Σ building worker amounts.** Add a fixed worker amount per
-   building/level in `catalog.ts` (residential = 0). Replace `growPopulation()`
-   in `game/population.ts` with a derived sum; population becomes monotonic — drop
-   the happiness-driven growth and the `<30%` shedding entirely.
-2. **Food consumed per click.** Remove the food drain from `consumeNeeds()`
-   (`game/happiness.ts`); consume **1 food/click** in `MockGameClient.click()`
-   and `runAutoclicker()`. Measure food in **units** via a per-good value table
-   over `FOOD_GOODS`, drained cheapest-good-first, floored at 0.
-3. **Happiness = 50% housing + 50% food.** `housingScore = min(1, capacity/pop)`,
-   `foodScore = min(1, foodUnits/pop)`. Park the staged six-section model
-   (energy/employment/fun/luxuries) behind a flag — it returns once the tech tree
-   is balanced.
-4. **Click efficiency ∝ happiness** — already in place (`clickEffectiveness`);
-   keep.
-5. **No ambient ticks for the player's city.** Only bots stay on the background
-   timer (a live planet); the player's city advances purely on clicks.
-6. **Re-balance.** Re-run `npm run balance` and update the harness + sane-band
-   asserts (`game/balanceHarness*.ts`) against the new numbers.
+- **Worker amounts** (`catalog.ts` `workersForTier`) set how fast population
+  climbs and how soon tech tiers unlock.
+- **Food** — `FOOD_UNIT_VALUE` (`civic.ts`) and `FOOD_PER_CLICK` (`happiness.ts`)
+  set how hard feeding the workforce bites. Today bots/players accumulate food
+  easily, so happiness pins high — tighten if food should be a real squeeze.
+- **Cash** — the harness shows cities run near-broke (they spend on building);
+  revisit `buildCost`/`upgradeCost` and market prices.
+- **Re-enable deeper happiness** (energy/employment/fun/luxuries) by flipping
+  `DEEP_HAPPINESS` in `happiness.ts` once the tech tree is balanced; that
+  restores the mid-band happiness valve.
 
 ## Done so far
 
-- **Core loop** — clicks → activity units → construction → production batches
-  (inputs bought from the market when short); residential blocks → population;
-  happiness (housing/food, then energy/employment/fun/luxuries) scales click
-  effectiveness; soft throttle meter.
+- **Core loop (click-driven, CORE_LOOP.md)** — each click does work *and* eats
+  1 food; population = Σ building worker amounts (monotonic, residential = 0);
+  housing must keep pace or workers are homeless; happiness = 50% housing + 50%
+  food and scales click effectiveness; deeper sections parked behind a flag.
 - **Markets** — game-run global buy/sell (infinite source/sink) + player-priced
   city-to-city offers; ~190 bot cities produce, grow, build, and trade.
 - **Monetization (§8)** — Bucks shop: energy-drink multiplier matrix,
   autoclicker "employees", air-ticket city moves.
 - **Shell** — PWA, localStorage persistence, deterministic seeding, v1 tactical
-  aesthetic. 39 vitest specs over the pure logic.
+  aesthetic. 42 vitest specs over the pure logic.
 - **Balance harness** — `game/balanceHarness.ts` runs the whole world (bots + an
   optional clicking player) headless and deterministically for N ticks;
   `game/balanceHarness.test.ts` asserts population/cash/happiness stay in sane
@@ -62,24 +53,6 @@ the old model — this migration comes before further balance work:
   house), shown once.
 - **Responsive pass (§5)** — media queries so the absolute HUD panels reflow on
   narrow / short viewports instead of overlapping.
-
-## Next — gameplay & balance
-
-The harness now models a *rounded* clicker (food + housing + an energy plant
-past pop 1,000). It confirms the intended dynamic: clicking sustains
-food+housing growth, while energy/fun/luxuries are **trade-driven**, so a pure
-clicker's happiness settles into a livable mid-band rather than pinning at 100.
-What's left here is play-tuning from that baseline:
-
-- **Numbers still first-draft.** Tune `civic.ts` (`FOOD_PER_CAPITA` /
-  `ENERGY_PER_CAPITA`), `catalog.ts` (`buildCost` / `constructionUnits` /
-  `workPerBatch` / `tierUnlockPopulation`), `throttle.ts` (click cap), and
-  `shop.ts` (Bucks prices). Watch `npm run balance` for the bands.
-- **Energy is a pure cash sink for a clicker** (Coal+Water in, Grid Energy
-  consumed). Consider a cheaper early energy source, or letting some energy be
-  sellable, so a clicker can lift the energy section without leaning on trade.
-- **Prerequisite-building gating.** Gating is population-only today; §10 Q#4 also
-  imagines prerequisite buildings unlocking a tier.
 
 ## Next — toward a real backend
 

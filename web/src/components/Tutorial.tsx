@@ -1,8 +1,8 @@
 // First-session tutorial (roadmap UX #6). A small coach card that nudges a new
-// operator through the core loop — pick a building → click → bank food → build
-// housing — advancing on real game milestones rather than timers, and never
-// shown again once finished or skipped. The starvation valve is unintuitive
-// cold; this is the warm-up.
+// operator through the core loop — pick a building → click → keep food stocked →
+// house the workforce — advancing on real game milestones rather than timers,
+// and never shown again once finished or skipped. The food-and-housing valve is
+// unintuitive cold; this is the warm-up.
 import { useEffect, useState } from 'react'
 import type { City, Operator } from '../types'
 
@@ -23,12 +23,12 @@ const STEPS: Step[] = [
   },
   {
     tag: 'STEP 2 · FEED',
-    text: 'Keep the Crop Farm active and grow some Food. Population eats every tick — an empty larder tanks happiness, and happiness powers your clicks.',
+    text: 'Keep the Crop Farm active and grow some Food. Every click feeds a worker, so food drops as you work — let the larder run dry and happiness falls, and happiness powers your clicks.',
     done: c => (c.inventory['Grain'] || 0) >= 20,
   },
   {
     tag: 'STEP 3 · HOUSE',
-    text: 'Crowded cities stop growing. Build a Housing Block (Civic) to raise capacity, then keep it fed. That loop — house, feed, repeat — is the whole game.',
+    text: 'Building and upgrading workplaces grows your population — the workers who staff them. House them with a Housing Block (Civic) or they go homeless and unhappy. Build, house, feed: that loop is the whole game.',
     done: c => c.buildings.some(b => b.defId === 'housing-block' && (b.level >= 2 || b.constructionRemaining > 0)),
   },
 ]

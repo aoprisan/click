@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { clickEffectiveness, computeHappiness, refreshHappiness, consumeNeeds, activeWeights } from './happiness'
+import {
+  clickEffectiveness, computeHappiness, refreshHappiness, foodUnits,
+  drainFood, consumeClickFood,
+} from './happiness'
 import { makeCity } from './testUtils'
 
 describe('happiness', () => {
@@ -12,33 +15,45 @@ describe('happiness', () => {
     expect(clickEffectiveness(0)).toBe(1)
   })
 
-  it('only housing + food count at low population', () => {
-    const w = activeWeights(100)
-    expect(Object.keys(w).sort()).toEqual(['food', 'housing'])
-  })
+  it('happiness = 50% housing + 50% food', () => {
+    // Fully housed (cap 400 ≥ pop 100) and well-fed (50 Grain = 500 food ≥ pop).
+    const happy = makeCity({ population: 100, populationCapacity: 400, inventory: { Grain: 50 } })
+    expect(computeHappiness(happy)).toBe(100)
 
-  it('energy joins the weighting at 1,000 population', () => {
-    expect(activeWeights(1500)).toHaveProperty('energy')
-  })
-
-  it('a fed, housed city is happy; a starving one is not', () => {
-    const fed = makeCity({ population: 100, populationCapacity: 400, inventory: { Grain: 50 } })
+    // Starving (no food) but housed → only the housing half → ~50%.
     const starving = makeCity({ population: 100, populationCapacity: 400, inventory: {} })
-    expect(computeHappiness(fed)).toBeGreaterThan(80)
-    expect(computeHappiness(starving)).toBeLessThan(computeHappiness(fed))
+    expect(computeHappiness(starving)).toBe(50)
+
+    // Homeless (pop 800 over cap 400) but fed → only the food half → ~50%.
+    const homeless = makeCity({ population: 800, populationCapacity: 400, inventory: { Grain: 200 } })
+    expect(computeHappiness(homeless)).toBeLessThan(80)
+    expect(computeHappiness(homeless)).toBeGreaterThan(40)
   })
 
-  it('population eats food each tick', () => {
-    const city = makeCity({ population: 1000, inventory: { Grain: 10 } })
-    consumeNeeds(city)
-    expect(city.inventory['Grain']).toBeLessThan(10)
+  it('food is measured in units: Σ count × per-good value', () => {
+    const city = makeCity({ inventory: { Grain: 3, 'Specialty Produce': 2 } })
+    expect(foodUnits(city)).toBe(3 * 10 + 2 * 300) // 630
   })
 
-  it('refreshHappiness fills the per-section breakdown', () => {
+  it('a click eats one food unit, cheapest good first', () => {
+    const city = makeCity({ inventory: { Grain: 1, Flour: 1 } }) // 10 + 30 = 40 units
+    consumeClickFood(city)
+    expect(foodUnits(city)).toBeCloseTo(39)
+    expect(city.inventory['Grain']).toBeCloseTo(0.9) // drained from the cheapest
+    expect(city.inventory['Flour']).toBe(1)          // dearer good untouched
+  })
+
+  it('drainFood spills into the next-cheapest good when the first runs out', () => {
+    const city = makeCity({ inventory: { Grain: 1, Flour: 1 } }) // 10 + 30
+    drainFood(city, 15) // eats all 10 of Grain, then 5 from Flour
+    expect(city.inventory['Grain']).toBeCloseTo(0)
+    expect(foodUnits(city)).toBeCloseTo(25)
+  })
+
+  it('refreshHappiness fills the housing + food breakdown', () => {
     const city = makeCity({ inventory: { Grain: 50 } })
     refreshHappiness(city)
-    expect(city.happinessBySection).toHaveProperty('housing')
-    expect(city.happinessBySection).toHaveProperty('food')
+    expect(Object.keys(city.happinessBySection).sort()).toEqual(['food', 'housing'])
     expect(city.happiness).toBeGreaterThan(0)
   })
 })

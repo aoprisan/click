@@ -13,12 +13,22 @@ export interface BuildingMeta {
   needsWorkers: boolean
   isResidential: boolean
   capacityPerLevel: number
+  /** workers each completed level employs; this is what makes up population
+   *  (design CORE_LOOP §1). Residential = 0 (housing, not jobs). */
+  workersPerLevel: number
+}
+
+/** Workers a workplace of this tier employs per level. Higher tiers staff more,
+ *  so climbing the tech tree grows population. First-draft curve — tunable. */
+function workersForTier(tier: number): number {
+  return 40 + tier * 10
 }
 
 const productionMetas: BuildingMeta[] = BUILDINGS.map((b: BuildingDef) => ({
   ...b,
   isResidential: false,
   capacityPerLevel: 0,
+  workersPerLevel: workersForTier(b.tier),
 }))
 
 export const RESIDENTIAL_META: BuildingMeta = {
@@ -31,6 +41,7 @@ export const RESIDENTIAL_META: BuildingMeta = {
   needsWorkers: false,
   isResidential: true,
   capacityPerLevel: RESIDENTIAL.capacityPerLevel,
+  workersPerLevel: 0,
 }
 
 export const ALL_BUILDINGS: BuildingMeta[] = [RESIDENTIAL_META, ...productionMetas]
@@ -85,9 +96,11 @@ export function tierUnlockPopulation(tier: number): number {
 }
 
 export function formatRecipe(def: BuildingMeta): string {
-  if (def.isResidential) return `+${def.capacityPerLevel} capacity`
+  if (def.isResidential) return `+${def.capacityPerLevel} housing`
   const ins = Object.keys(def.inputs)
   const outs = Object.keys(def.outputs)
-  const left = [...(def.needsWorkers ? ['Workers'] : []), ...ins].join(' + ') || '—'
-  return `${left} → ${outs.join(' + ')}`
+  const recipe = `${ins.join(' + ') || '—'} → ${outs.join(' + ')}`
+  // Lead with the population each level employs — building/upgrading a workplace
+  // is how population grows (CORE_LOOP §1).
+  return `+${def.workersPerLevel} pop · ${recipe}`
 }

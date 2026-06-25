@@ -11,8 +11,8 @@ import { getBuilding } from '../game/catalog'
 import {
   applyUnits, startBuild as ecoStartBuild, startUpgrade as ecoStartUpgrade,
 } from '../game/economy'
-import { refreshHappiness, clickEffectiveness, consumeNeeds } from '../game/happiness'
-import { growPopulation } from '../game/population'
+import { refreshHappiness, clickEffectiveness, consumeClickFood } from '../game/happiness'
+import { syncCity } from '../game/population'
 import { stepBot, seedStartingInventory } from '../game/bots'
 import {
   marketBuy, marketSell, postOffer, cancelOffer, takeOffer, addInv, giftResource,
@@ -80,7 +80,7 @@ export class MockGameClient implements GameClient {
         lat: s.lat,
         lng: s.lng,
         isBot: true,
-        population: 80 + (h % 320),
+        population: 0,
         populationCapacity: 0,
         peakPopulation: 0,
         cash: 300 + (h % 700),
@@ -97,8 +97,7 @@ export class MockGameClient implements GameClient {
 
       seedStartingInventory(city)
       addInv(city, 'Grain', 60)
-      city.peakPopulation = city.population
-      growPopulation(city)
+      syncCity(city) // population/capacity/peak derived from the seeded buildings
       refreshHappiness(city)
       this.cities.set(city.id, city)
     }
@@ -151,18 +150,12 @@ export class MockGameClient implements GameClient {
       if (c) stepBot(c, ctx)
     }
 
-    // The player's city ages too: it eats, grows, and re-scores happiness, even
-    // though its production is driven by clicks rather than the bot loop.
+    // The player's city is purely click-driven (CORE_LOOP §0) — nothing about it
+    // changes between clicks. The one timer-driven exception is the autoclicker
+    // "employee", which clicks (and eats food) on the player's behalf.
     if (homeId) {
       const home = this.cities.get(homeId)
-      if (home) {
-        this.runAutoclicker(home)
-        consumeNeeds(home)
-        refreshHappiness(home)
-        growPopulation(home)
-        refreshHappiness(home)
-        this.bus.emit({ type: 'city_update', data: home })
-      }
+      if (home) this.runAutoclicker(home)
     }
 
     // Lapse any expired energy drink / autoclicker.
@@ -237,6 +230,8 @@ export class MockGameClient implements GameClient {
         this.bus.emit({ type: 'production', data: { cityId: city.id, buildingDefId, output, qty: perBatch * (b?.level ?? 1) * res.batches } })
       }
     }
+    consumeClickFood(city)   // a worker ate (CORE_LOOP §3)
+    syncCity(city)           // a completed build/upgrade may have added workers
     refreshHappiness(city)
     this.bus.emit({ type: 'city_update', data: city })
     this.bus.emit({ type: 'operator_update', data: this.operator })
@@ -348,10 +343,14 @@ export class MockGameClient implements GameClient {
       if (!this.meter.tryConsume()) break
       const units = clickEffectiveness(home.happiness) * mult
       applyUnits(home, this.activeBuildingId, units)
+      consumeClickFood(home) // each auto-click feeds a worker too (CORE_LOOP §3)
       op.totalUnits += units
       fired++
     }
     if (fired > 0) {
+      syncCity(home)
+      refreshHappiness(home)
+      this.bus.emit({ type: 'city_update', data: home })
       this.bus.emit({ type: 'operator_update', data: op })
       this.bus.emit({ type: 'throttle', data: { remaining: this.meter.remaining(), capacity: this.meter.cap(), blocked: false } })
     }

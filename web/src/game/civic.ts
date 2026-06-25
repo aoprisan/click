@@ -1,11 +1,12 @@
 // Hand-authored civic layer the supply-chain CSV doesn't cover: residential
-// housing (which drives population), the goods that satisfy each happiness
+// housing (which houses the workforce), the goods that satisfy each happiness
 // need, and the country→raw-resource lookup (with name normalization).
 import { COUNTRY_RESOURCES } from './catalog.data'
 
-// --- residential building: the engine of population growth (design §3) ---
-// Population is a function of residential capacity, NOT player count. Each
-// Housing Block built raises the city's capacity; population grows toward it.
+// --- residential building: housing for the workforce (CORE_LOOP §2) ---
+// Residential blocks add housing *capacity*, not population. Population is the
+// sum of building worker amounts (CORE_LOOP §1); housing that lags it leaves
+// workers homeless, which pulls happiness down.
 export const RESIDENTIAL = {
   id: 'housing-block',
   name: 'Housing Block',
@@ -25,6 +26,18 @@ export const RESIDENTIAL = {
 // city is large (happiness STAGES), so they are the late-game problems a 50k
 // city has to solve — wire more goods in here to widen those options.
 export const FOOD_GOODS = ['Grain', 'Flour', 'High-Yield Food', 'Packaged Rations', 'Specialty Produce']
+
+// How many "food units" one of each food good is worth (design CORE_LOOP §3).
+// A city's food = Σ count(good) × value(good); a worker eats 1 food unit per
+// click, drained cheapest-good-first. Ascending so the chain rewards refining
+// raw grain into denser food. Tunable — first-draft values.
+export const FOOD_UNIT_VALUE: Record<string, number> = {
+  Grain: 10,
+  Flour: 30,
+  'High-Yield Food': 80,
+  'Packaged Rations': 160,
+  'Specialty Produce': 300,
+}
 export const ENERGY_GOODS = ['Grid Energy', 'High-Voltage Power', 'Mega Power Grid', 'Renewable Clean Energy', 'Atomic Baseload Energy']
 export const LUXURY_GOODS = [
   // Apparel — the original luxury chain…
@@ -39,12 +52,6 @@ export const FUN_GOODS = [
   'Enterprise Databases', 'Business Server Networks', 'Neural Network Model',
   '2026 Autonomous AI Copilots',
 ]
-
-// Per-capita demand, per tick, expressed in units of the cheapest satisfying
-// good. Tuned so a clicking player can keep pace with a couple of food/energy
-// buildings — raise these to make needs bite harder.
-export const FOOD_PER_CAPITA = 0.001
-export const ENERGY_PER_CAPITA = 0.0008
 
 // --- country resources ---
 // The seed city list and the resources CSV don't always spell countries the

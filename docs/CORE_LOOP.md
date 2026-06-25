@@ -3,10 +3,11 @@
 *Authoritative mechanics spec, June 2026. Derived from design notes; refines
 [`CITY_DESIGN_OVERVIEW.md`](CITY_DESIGN_OVERVIEW.md) §3–§4.*
 
-> **Status.** This is the **target** model. The `web/` prototype still implements
-> the previous model (population eases toward residential capacity, food drains
-> ambiently per tick, six-section staged happiness). Migrating the code to match
-> this doc is tracked in [`../web/WHATS_NEXT.md`](../web/WHATS_NEXT.md).
+> **Status.** **Implemented** in the `web/` prototype (June 2026). The numbers —
+> worker amounts per tier (`catalog.ts`), food values (`civic.ts`), food-per-click
+> (`happiness.ts`) — are first-draft and still to be play-balanced. The deeper
+> happiness sections remain dormant behind the `DEEP_HAPPINESS` flag in
+> `happiness.ts`. Balance follow-ups are in [`../web/WHATS_NEXT.md`](../web/WHATS_NEXT.md).
 
 ---
 

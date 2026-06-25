@@ -99,8 +99,8 @@ That's the whole monetization story at MVP. If it flies, the obvious next levers
 
 | Mechanic in this design | Proven by |
 |---|---|
-| Needs → happiness → growth loop | SimCity BuildIt (happiness drives population and income; top-grossing for years) |
-| Housing capacity gates population | SimCity BuildIt |
+| Needs → happiness → output loop | SimCity BuildIt (happiness drives production and income; top-grossing for years) |
+| Buildings staff a workforce (population) that drives output | SimCity BuildIt; factory/idle builders (Cookie Clicker, AdVenture Capitalist) |
 | Click → multiplier → automation progression, pay-for-convenience | Cookie Clicker, AdVenture Capitalist, War Clicks |
 | Game-run market maker bounding a player economy | eRepublik's crises show what unconstrained player economies do; an infinite-source/sink market maker is the guardrail |
 | Real-world geography as the board | eRepublik; v1 of this game |

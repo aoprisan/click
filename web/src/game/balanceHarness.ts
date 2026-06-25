@@ -9,12 +9,12 @@
 // measures the *same* economy the UI drives, not a parallel toy.
 import type { City } from '../types'
 import { SEED_CITIES } from './seedCities'
-import { getCountryResources, FOOD_GOODS, ENERGY_GOODS } from './civic'
-import { getBuilding, buildCost } from './catalog'
+import { getCountryResources } from './civic'
+import { ALL_BUILDINGS, getBuilding, buildCost, upgradeCost } from './catalog'
 import { stepBot, seedStartingInventory } from './bots'
-import { applyUnits, startBuild, findBuilding } from './economy'
-import { refreshHappiness, clickEffectiveness, consumeNeeds } from './happiness'
-import { growPopulation, capacityOf } from './population'
+import { applyUnits, startBuild, startUpgrade, findBuilding, isOperational, isBuildingUnlocked } from './economy'
+import { refreshHappiness, clickEffectiveness, consumeClickFood, foodUnits } from './happiness'
+import { syncCity, capacityOf } from './population'
 import { marketSell, addInv } from './market'
 import { RateMeter } from './throttle'
 
@@ -57,7 +57,7 @@ function seedCity(s: (typeof SEED_CITIES)[number]): City {
   const city: City = {
     id: s.id, name: s.name, country: s.country, countryCode: s.countryCode,
     lat: s.lat, lng: s.lng, isBot: true,
-    population: 80 + (h % 320),
+    population: 0,
     populationCapacity: 0, peakPopulation: 0,
     cash: 300 + (h % 700), happiness: 50, happinessBySection: {},
     inventory: {}, buildings: [newBuilding('housing-block', 1), newBuilding('crop-farm', 1)],
@@ -67,80 +67,77 @@ function seedCity(s: (typeof SEED_CITIES)[number]): City {
   if (getBuilding(extra)) city.buildings.push(newBuilding(extra, 1))
   seedStartingInventory(city)
   addInv(city, 'Grain', 60)
-  city.peakPopulation = city.population
-  growPopulation(city)
+  syncCity(city) // population/capacity/peak derived from the seeded buildings
   refreshHappiness(city)
   return city
 }
 
 // --- player strategy ---------------------------------------------------------
-// A competent-but-not-superhuman clicker: feed the city first, then pour the
-// surplus clicks into Housing Blocks, selling food beyond the larder to fund
-// them. Once the city crosses pop 1,000 — where the energy happiness section
-// switches on — it also stands up a Coal Power Station and keeps it fed, so the
-// harness measures a *rounded* player, not one that plateaus for lack of an
-// energy path. Clicks are throttle-gated at the real game rate, so this is the
-// upper bound of an *engaged* human, not a bot with godlike APM. Feeding before
-// building is the key discipline: pouring every click into construction starves
-// the city mid-build.
+// A competent-but-not-superhuman clicker under the click-driven model
+// (CORE_LOOP): grow population by standing up and upgrading workplaces, keep
+// housing ahead of the workforce, and keep food units ahead of population —
+// because every click eats 1 food. Clicks are throttle-gated at the real game
+// rate, so this is the upper bound of an *engaged* human, not godlike APM.
+// Feeding first is the discipline: a click on an empty larder still does work,
+// but a starving/homeless city is unhappy, so each click is worth fewer units.
 
-// Stock targets that keep a happiness section near full. Mirror happiness
-// STOCK_PER_CAP (food 0.05, energy 0.04); the small headroom leaves a buffer.
-const PLAYER_FOOD_TARGET_PER_CAP = 0.055
-const PLAYER_ENERGY_TARGET_PER_CAP = 0.045
-const ENERGY_BUILDING = 'coal-power-station' // tier 3, unlocks at pop 1,000
+// Keep food units this multiple of population so the food half of happiness
+// stays near full (food score = foodUnits / population).
+const FOOD_BUFFER = 1.3
 
-function stockOf(city: City, goods: string[]): number {
-  let n = 0
-  for (const g of goods) n += city.inventory[g] || 0
-  return n
-}
-
-// Cash to keep in reserve before spending clicks on the power plant. Energy is
-// a pure sink (Coal+Water bought in, Grid Energy consumed), so a broke city must
-// bank and sell food for income before it can afford to keep the lights on.
-const PLAYER_CASH_RESERVE = 300
-
-// Where the next click should go: feed the city first; keep the power on only
-// while solvent; then finish construction; otherwise bank food surplus to sell.
-function playerTarget(city: City, foodTarget: number, energyTarget: number, hasPower: boolean): string {
-  if (stockOf(city, FOOD_GOODS) < foodTarget) return 'crop-farm'
-  if (hasPower && city.cash > PLAYER_CASH_RESERVE && stockOf(city, ENERGY_GOODS) < energyTarget) {
-    return ENERGY_BUILDING
-  }
+// Where the next click should go: feed the city first, then finish whatever is
+// under construction, otherwise keep banking food to fund the next building.
+function playerTarget(city: City): string {
+  if (foodUnits(city) < city.population * FOOD_BUFFER) return 'crop-farm'
   const underway = city.buildings.find(b => b.constructionRemaining > 0)
   if (underway) return underway.defId
-  return 'crop-farm' // bank surplus → sold below for cash
+  return 'crop-farm'
 }
 
-function stepPlayer(city: City, meter: RateMeter): void {
+// Spend cash to grow population: a new affordable, unlocked workplace if one is
+// available, otherwise upgrade an operational workplace (more levels = more
+// workers). Housing carries 0 workers, so it's handled separately.
+function growWorkforce(city: City, rand: () => number): void {
+  const fresh = ALL_BUILDINGS.filter(def =>
+    !def.isResidential && def.tier <= 6 && isBuildingUnlocked(city, def) &&
+    !findBuilding(city, def.id) && city.cash >= buildCost(def),
+  )
+  if (fresh.length > 0) {
+    startBuild(city, fresh[Math.floor(rand() * fresh.length)].id)
+    return
+  }
+  const upgradable = city.buildings.filter(b => {
+    const def = getBuilding(b.defId)
+    return def && !def.isResidential && isOperational(b) && city.cash >= upgradeCost(def, b.level)
+  })
+  if (upgradable.length > 0) {
+    startUpgrade(city, upgradable[Math.floor(rand() * upgradable.length)].defId)
+  }
+}
+
+function stepPlayer(city: City, meter: RateMeter, rand: () => number): void {
+  // Keep housing ahead of the workforce so people aren't homeless.
   const cap = capacityOf(city)
-  const crowded = cap === 0 || city.population > cap * 0.7
+  const crowded = cap === 0 || city.population > cap * 0.8
   if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
     startBuild(city, 'housing-block')
-  }
-  // Past the energy stage, round the city out with a power plant.
-  if (city.population >= 1_000 && !findBuilding(city, ENERGY_BUILDING)) {
-    startBuild(city, ENERGY_BUILDING) // no-op if unaffordable / locked
+  } else if (!city.buildings.some(b => b.constructionRemaining > 0)) {
+    // Nothing under construction and well-housed → grow population.
+    growWorkforce(city, rand)
   }
 
-  const foodTarget = Math.max(20, city.population * PLAYER_FOOD_TARGET_PER_CAP)
-  const energyTarget = city.population >= 1_000 ? city.population * PLAYER_ENERGY_TARGET_PER_CAP : 0
-  const hasPower = !!findBuilding(city, ENERGY_BUILDING)
   let clicks = 0
   while (meter.tryConsume() && clicks < 200) {
-    const target = playerTarget(city, foodTarget, energyTarget, hasPower)
-    applyUnits(city, target, clickEffectiveness(city.happiness)) // mult = 1 (no shop boosts)
+    applyUnits(city, playerTarget(city), clickEffectiveness(city.happiness)) // mult = 1
+    consumeClickFood(city) // a worker ate
     clicks++
   }
 
-  // Sell food above the larder to raise cash for housing + energy inputs.
-  const surplus = stockOf(city, FOOD_GOODS) - foodTarget * 1.2
-  if (surplus > 40) marketSell(city, 'Grain', Math.floor(surplus * 0.6))
+  // Sell food above the buffer for cash to fund the next building.
+  const surplusUnits = foodUnits(city) - city.population * FOOD_BUFFER * 1.2
+  if (surplusUnits > 200) marketSell(city, 'Grain', Math.floor((surplusUnits / 10) * 0.5))
 
-  consumeNeeds(city)
-  refreshHappiness(city)
-  growPopulation(city)
+  syncCity(city)
   refreshHappiness(city)
 }
 
@@ -233,7 +230,7 @@ export function simulate(opts: HarnessOptions = {}): HarnessResult {
       }
     }
 
-    if (player) stepPlayer(player, meter)
+    if (player) stepPlayer(player, meter, rand)
 
     history.push(sample(t, cities))
     opts.onTick?.(t, cities, player)
@@ -248,10 +245,10 @@ export function simulate(opts: HarnessOptions = {}): HarnessResult {
 export function findInvariantViolations(cities: City[]): string[] {
   const problems: string[] = []
   for (const c of cities) {
-    const cap = capacityOf(c)
     if (!Number.isFinite(c.population)) problems.push(`${c.id}: population not finite`)
     if (c.population < 0) problems.push(`${c.id}: negative population ${c.population}`)
-    if (c.population > cap) problems.push(`${c.id}: population ${c.population} over capacity ${cap}`)
+    // NOTE: population may legitimately exceed housing capacity now — that's
+    // homelessness (CORE_LOOP §2), which pulls happiness down, not a bug.
     if (!Number.isFinite(c.cash)) problems.push(`${c.id}: cash not finite`)
     if (c.cash < 0) problems.push(`${c.id}: negative cash ${c.cash}`)
     if (!Number.isFinite(c.happiness)) problems.push(`${c.id}: happiness not finite`)
