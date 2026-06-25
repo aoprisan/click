@@ -103,18 +103,20 @@
 }
 .branch-tab.sel { border-color: var(--amber); color: var(--amber); }
 
-/* ---- market + trade panels (right stack) ---- */
+/* ---- right-hand HUD column: leaderboard + market + trade + shop ---- */
 .right-stack {
   position: absolute;
-  top: 268px;
+  top: 18px;
   right: 24px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
   width: 280px;
-  /* never run off the bottom of the screen — scroll the stack instead. */
-  max-height: calc(100vh - 300px);
+  /* One column that flows top-down: an expanding leaderboard pushes the panels
+     below it instead of sliding under them. Never run off the bottom of the
+     screen — scroll the whole column instead. */
+  max-height: calc(100vh - 36px);
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -258,10 +260,9 @@
 @media (max-width: 900px) {
   .city-panel { width: 44vw; left: 12px; bottom: 96px; max-height: 42vh; }
   .build-panel { width: 44vw; max-height: 44vh; }
-  .right-stack { width: 44vw; right: 12px; top: 150px; max-height: calc(100vh - 230px); }
+  .right-stack { width: 44vw; right: 12px; top: 12px; max-height: calc(100vh - 24px); }
   .hud-left { left: 12px; }
   .global-counter { transform: scale(0.86); transform-origin: top right; }
-  .leaderboard-panel { transform: scale(0.86); transform-origin: top left; }
   .tutorial-card { bottom: 150px; }
 }
 

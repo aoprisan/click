@@ -355,10 +355,8 @@ body::after {
 
 /* ====================== Leaderboard ====================== */
 
+/* Position/width come from the .right-stack column it now lives in. */
 .leaderboard-panel {
-  top: 18px;
-  right: 24px;
-  width: 280px;
   animation-delay: 0.15s;
 }
 
@@ -417,6 +415,66 @@ body::after {
 .lb-empty {
   color: var(--dim);
   font-size: 12px;
+}
+
+/* Header right side: your live rank + the 3-state mode pips. */
+.lb-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-myrank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber);
+}
+
+.lb-modes {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.lb-modes i {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+
+.lb-modes i.on {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* Your own city, highlighted within the standings/bracket views. */
+.lb-row.is-home {
+  background: rgba(255, 176, 0, 0.07);
+  box-shadow: inset 2px 0 0 var(--amber);
+  padding-left: 6px;
+}
+
+/* Separator standing in for the cities hidden between the leaders and you. */
+.lb-gap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.lb-gap::before,
+.lb-gap::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed var(--line-dim);
+}
+
+.lb-gap span {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 /* ====================== Side panels ====================== */

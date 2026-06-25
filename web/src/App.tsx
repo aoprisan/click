@@ -176,7 +176,38 @@ export default function App() {
 
       {!hudHidden && booted && cities.length > 0 && <WorldReadout cities={cities} />}
 
-      {!hudHidden && <Leaderboard cities={cities} homeCityId={homeId} onSelect={c => setSelectedCityId(c.id)} />}
+      {!hudHidden && (
+        <div className="right-stack">
+          <Leaderboard cities={cities} homeCityId={homeId} onSelect={c => setSelectedCityId(c.id)} />
+          {homeCity && (
+            <>
+              <MarketPanel
+                city={homeCity}
+                onSell={(r, q) => game.sellToMarket(r, q)}
+                onBuy={(r, q) => game.buyFromMarket(r, q)}
+              />
+              <TradePanel
+                home={homeCity}
+                cities={cities}
+                onBuyOffer={(id, q) => game.buyOffer(id, q)}
+                onPostOffer={(r, q, p) => game.postOffer(r, q, p)}
+                onCancelOffer={id => game.cancelOffer(id)}
+                onGift={(toId, r, q) => game.giftResource(toId, r, q)}
+              />
+              {operator && (
+                <ShopPanel
+                  operator={operator}
+                  cities={cities}
+                  now={now}
+                  onBuy={id => game.buyItem(id)}
+                  onUse={id => game.useItem(id)}
+                  onMove={id => game.moveHomeCity(id)}
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {!hudHidden && selectedCity && <CityPanel city={selectedCity} isHome={selectedCity.id === homeId} />}
 
@@ -190,32 +221,6 @@ export default function App() {
               onBuild={id => game.startBuild(id)}
               onUpgrade={id => game.startUpgrade(id)}
             />
-          </div>}
-
-          {!hudHidden && <div className="right-stack">
-            <MarketPanel
-              city={homeCity}
-              onSell={(r, q) => game.sellToMarket(r, q)}
-              onBuy={(r, q) => game.buyFromMarket(r, q)}
-            />
-            <TradePanel
-              home={homeCity}
-              cities={cities}
-              onBuyOffer={(id, q) => game.buyOffer(id, q)}
-              onPostOffer={(r, q, p) => game.postOffer(r, q, p)}
-              onCancelOffer={id => game.cancelOffer(id)}
-              onGift={(toId, r, q) => game.giftResource(toId, r, q)}
-            />
-            {operator && (
-              <ShopPanel
-                operator={operator}
-                cities={cities}
-                now={now}
-                onBuy={id => game.buyItem(id)}
-                onUse={id => game.useItem(id)}
-                onMove={id => game.moveHomeCity(id)}
-              />
-            )}
           </div>}
 
           <ClickButton
