@@ -1,9 +1,12 @@
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
+import { useEffect, useRef, useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react'
 import GlobeGL from 'react-globe.gl'
 import * as topojson from 'topojson-client'
 import type { City } from '../types'
 
 const ATLAS_URL = `${import.meta.env.BASE_URL}countries-110m.json`
+
+// Auto-rotation pauses while the user interacts and resumes after this idle gap.
+const IDLE_RESUME_MS = 30_000
 
 /** A transient trade/gift link drawn as a great-circle arc on the globe (§8). */
 export interface TradeArc {
@@ -23,6 +26,12 @@ interface GlobeProps {
   onCityClick: (city: City) => void
 }
 
+/** Imperative handle so the app can signal player activity (e.g. GROW presses). */
+export interface GlobeHandle {
+  /** Treat as interaction: pause the idle spin and restart the resume timer. */
+  noteActivity: () => void
+}
+
 // Color a city by happiness: red (miserable) → amber → green (thriving).
 function happinessColor(happiness: number, alpha = 0.8): string {
   const h = Math.max(0, Math.min(100, happiness))
@@ -37,10 +46,37 @@ const ARC_COLOR: Record<TradeArc['kind'], string> = {
   market_buy: '#4be37a',
 }
 
-export default function Globe({ cities, homeCityId, selectedCityId, arcs = [], onCityClick }: GlobeProps) {
+const Globe = forwardRef<GlobeHandle, GlobeProps>(function Globe(
+  { cities, homeCityId, selectedCityId, arcs = [], onCityClick }: GlobeProps,
+  ref,
+) {
   const globeRef = useRef<any>(null)
   const polygonsRef = useRef<any[]>([])
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight })
+
+  // Stop the idle spin (and cancel any pending resume) — used both when the user
+  // grabs the globe and around programmatic fly-tos so rotation never fights them.
+  const pauseAutoRotate = useCallback(() => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    const controls = globeRef.current?.controls()
+    if (controls) controls.autoRotate = false
+  }, [])
+
+  // Resume the idle spin once there's been no interaction for IDLE_RESUME_MS.
+  const resumeAutoRotateWhenIdle = useCallback(() => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    resumeTimerRef.current = setTimeout(() => {
+      const controls = globeRef.current?.controls()
+      if (controls) controls.autoRotate = true
+    }, IDLE_RESUME_MS)
+  }, [])
+
+  // Player activity outside the globe (GROW presses) counts as interaction:
+  // pause the spin and push the resume out by the full idle window.
+  useImperativeHandle(ref, () => ({
+    noteActivity: () => { pauseAutoRotate(); resumeAutoRotateWhenIdle() },
+  }), [pauseAutoRotate, resumeAutoRotateWhenIdle])
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>
@@ -64,21 +100,30 @@ export default function Globe({ cities, homeCityId, selectedCityId, arcs = [], o
   }, [])
 
   useEffect(() => {
-    if (!globeRef.current) return
-    const controls = globeRef.current.controls()
-    if (controls) {
-      controls.autoRotate = true
-      controls.autoRotateSpeed = 0.4
-      controls.enableDamping = false
+    const controls = globeRef.current?.controls()
+    if (!controls) return
+    controls.autoRotate = true
+    controls.autoRotateSpeed = 0.4
+    controls.enableDamping = false
+    // OrbitControls emits 'start' on pointer-down (drag/zoom/tap) and 'end' on
+    // release: pause the spin while interacting, then resume after 30s idle.
+    controls.addEventListener('start', pauseAutoRotate)
+    controls.addEventListener('end', resumeAutoRotateWhenIdle)
+    return () => {
+      controls.removeEventListener('start', pauseAutoRotate)
+      controls.removeEventListener('end', resumeAutoRotateWhenIdle)
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
     }
-  }, [])
+  }, [pauseAutoRotate, resumeAutoRotateWhenIdle])
 
   useEffect(() => {
     if (!globeRef.current || !homeCityId) return
     const city = cities.find(c => c.id === homeCityId)
     if (city) {
       setTimeout(() => {
+        pauseAutoRotate()
         globeRef.current?.pointOfView({ lat: city.lat, lng: city.lng, altitude: 1.6 }, 1500)
+        resumeAutoRotateWhenIdle()
       }, 500)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,4 +205,6 @@ export default function Globe({ cities, homeCityId, selectedCityId, arcs = [], o
       height={dimensions.height}
     />
   )
-}
+})
+
+export default Globe

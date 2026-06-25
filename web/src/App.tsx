@@ -5,7 +5,7 @@ import { usePwaUpdate } from './hooks/usePwaUpdate'
 import type { City, Operator } from './types'
 import { getBuilding } from './game/catalog'
 import { clickEffectiveness } from './game/happiness'
-import type { TradeArc } from './components/Globe'
+import type { TradeArc, GlobeHandle } from './components/Globe'
 import Globe from './components/Globe'
 import Onboarding from './components/Onboarding'
 import CityPanel from './components/CityPanel'
@@ -36,6 +36,7 @@ export default function App() {
   const arcSeq = useRef(0)
   const lastProdToast = useRef(0)
   const cityRef = useRef<Map<string, City>>(new Map())
+  const globeRef = useRef<GlobeHandle>(null)
   const pwa = usePwaUpdate()
 
   // A slow clock so active-boost countdowns tick down in the UI.
@@ -134,7 +135,10 @@ export default function App() {
     })
   }, [pushToast])
 
-  const handleClick = useCallback(() => game.click(activeBuildingId), [activeBuildingId])
+  const handleClick = useCallback(() => {
+    globeRef.current?.noteActivity()
+    game.click(activeBuildingId)
+  }, [activeBuildingId])
 
   const activeBuildingName = getBuilding(activeBuildingId)?.name ?? activeBuildingId
   const multiplier = operator?.activeMultiplier && now < operator.activeMultiplier.expiresAt ? operator.activeMultiplier.factor : 1
@@ -162,6 +166,7 @@ export default function App() {
       )}
 
       <Globe
+        ref={globeRef}
         cities={cities}
         homeCityId={homeId}
         selectedCityId={selectedCityId}
