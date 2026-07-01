@@ -10,6 +10,7 @@ import { getCountryResources } from '../game/civic'
 import { getBuilding } from '../game/catalog'
 import {
   applyUnits, startBuild as ecoStartBuild, startUpgrade as ecoStartUpgrade,
+  isOperational, batchShortfall,
 } from '../game/economy'
 import { refreshHappiness, clickEffectiveness, consumeClickFood } from '../game/happiness'
 import { syncCity } from '../game/population'
@@ -55,6 +56,9 @@ export class MockGameClient implements GameClient {
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   /** the building the player's clicks (and the autoclicker) currently target. */
   private activeBuildingId = 'crop-farm'
+  /** throttles the "stalled — needs X" notice so a held click doesn't spam it. */
+  private lastStallKey = ''
+  private lastStallAt = 0
 
   constructor() {
     const loaded = this.load()
@@ -110,6 +114,20 @@ export class MockGameClient implements GameClient {
       if (!raw) return null
       const parsed = JSON.parse(raw) as SaveState
       if (!parsed.cities || parsed.cities.length === 0) return null
+      // Migration: instant build/upgrade replaced click-built construction. Finish
+      // any construction still in flight from an older save so nothing is stranded
+      // half-built, then re-derive population/happiness for the cities we touched.
+      for (const c of parsed.cities) {
+        let migrated = false
+        for (const b of c.buildings) {
+          if (b.constructionRemaining > 0) {
+            if (b.level < 1) b.level = 1 // an unfinished first build → operational
+            b.constructionRemaining = 0
+            migrated = true
+          }
+        }
+        if (migrated) { syncCity(c); refreshHappiness(c) }
+      }
       return parsed
     } catch {
       return null
@@ -205,11 +223,43 @@ export class MockGameClient implements GameClient {
     return this.operator ? this.cities.get(this.operator.homeCityId) ?? null : null
   }
 
+  /** Missing inputs when this building is an operational producer that can't run
+   *  right now; null when it can be worked (or isn't a producer). */
+  private productionBlock(city: City, defId: string): string[] | null {
+    const def = getBuilding(defId)
+    const b = city.buildings.find(x => x.defId === defId)
+    if (!def || !b || !isOperational(b) || def.isResidential) return null
+    const short = batchShortfall(city, def)
+    return short.length > 0 ? short : null
+  }
+
+  /** Throttled "stalled — needs X" toast so a held click doesn't flood. */
+  private maybeStallNotice(defId: string, name: string, missing: string[]): void {
+    const key = `${defId}:${missing.join(',')}`
+    const now = Date.now()
+    if (key !== this.lastStallKey || now - this.lastStallAt > 4000) {
+      this.notify({ text: `${name} stalled — needs ${missing.join(', ')}`, tone: 'warn' })
+      this.lastStallKey = key
+      this.lastStallAt = now
+    }
+  }
+
   // --- core loop ---
   click(buildingDefId: string): void {
     const city = this.home()
     if (!city || !this.operator) return
     this.activeBuildingId = buildingDefId
+    const def = getBuilding(buildingDefId)
+
+    // A producer short an input can't be worked — the click isn't counted at all
+    // (no throttle spent, no food eaten, no units): just surface what it needs.
+    const block = this.productionBlock(city, buildingDefId)
+    if (block) {
+      this.maybeStallNotice(buildingDefId, def?.name ?? buildingDefId, block)
+      this.bus.emit({ type: 'city_update', data: city })
+      return
+    }
+
     if (!this.meter.tryConsume()) {
       this.bus.emit({ type: 'throttle', data: { remaining: this.meter.remaining(), capacity: this.meter.cap(), blocked: true } })
       return
@@ -218,7 +268,6 @@ export class MockGameClient implements GameClient {
     const units = clickEffectiveness(city.happiness) * mult // base 1..10 units × drink multiplier
     const res = applyUnits(city, buildingDefId, units)
     this.operator.totalUnits += units
-    const def = getBuilding(buildingDefId)
     if (res.completedConstruction) {
       this.bus.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: def?.name ?? buildingDefId } })
     }
@@ -229,6 +278,11 @@ export class MockGameClient implements GameClient {
       if (output) {
         this.bus.emit({ type: 'production', data: { cityId: city.id, buildingDefId, output, qty: perBatch * (b?.level ?? 1) * res.batches } })
       }
+    }
+    // Inputs ran out partway through a mega-click (only with a drink multiplier) —
+    // tell the player what to restock.
+    if (res.blockedOn.length > 0 && def) {
+      this.maybeStallNotice(buildingDefId, def.name, res.blockedOn)
     }
     consumeClickFood(city)   // a worker ate (CORE_LOOP §3)
     syncCity(city)           // a completed build/upgrade may have added workers
@@ -243,18 +297,28 @@ export class MockGameClient implements GameClient {
     const city = this.home(); if (!city) return
     const def = getBuilding(buildingDefId)
     const r = ecoStartBuild(city, buildingDefId)
-    this.notify(r.ok ? { text: `Construction started: ${def?.name ?? buildingDefId}`, tone: 'good' }
-                     : { text: r.reason ?? 'cannot build', tone: 'warn' })
-    if (r.ok) { this.bus.emit({ type: 'city_update', data: city }); this.scheduleSave() }
+    if (!r.ok) { this.notify({ text: r.reason ?? 'cannot build', tone: 'warn' }); return }
+    // Instant: the workplace/block is operational now — recompute population and
+    // happiness so the HUD reflects it this frame, and toast it as built.
+    syncCity(city)
+    refreshHappiness(city)
+    this.bus.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: def?.name ?? buildingDefId } })
+    this.notify({ text: `Built ${def?.name ?? buildingDefId}`, tone: 'good' })
+    this.bus.emit({ type: 'city_update', data: city })
+    this.scheduleSave()
   }
 
   async startUpgrade(buildingDefId: string): Promise<void> {
     const city = this.home(); if (!city) return
     const def = getBuilding(buildingDefId)
     const r = ecoStartUpgrade(city, buildingDefId)
-    this.notify(r.ok ? { text: `Upgrading ${def?.name ?? buildingDefId}`, tone: 'good' }
-                     : { text: r.reason ?? 'cannot upgrade', tone: 'warn' })
-    if (r.ok) { this.bus.emit({ type: 'city_update', data: city }); this.scheduleSave() }
+    if (!r.ok) { this.notify({ text: r.reason ?? 'cannot upgrade', tone: 'warn' }); return }
+    syncCity(city) // +1 level = more workers → population rises immediately
+    refreshHappiness(city)
+    const b = city.buildings.find(x => x.defId === buildingDefId)
+    this.notify({ text: `Upgraded ${def?.name ?? buildingDefId} to L${b?.level ?? ''}`, tone: 'good' })
+    this.bus.emit({ type: 'city_update', data: city })
+    this.scheduleSave()
   }
 
   // --- market ---
@@ -340,6 +404,9 @@ export class MockGameClient implements GameClient {
     const mult = currentMultiplier(op, Date.now())
     let fired = 0
     for (let i = 0; i < 30; i++) {
+      // Stalled active building (missing an input, or ran dry mid-burst): stop —
+      // an employee can't be worked on nothing either (no throttle/food burned).
+      if (this.productionBlock(home, this.activeBuildingId)) break
       if (!this.meter.tryConsume()) break
       const units = clickEffectiveness(home.happiness) * mult
       applyUnits(home, this.activeBuildingId, units)

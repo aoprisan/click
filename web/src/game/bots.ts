@@ -4,7 +4,7 @@
 // the player uses.
 import type { City, GameEvent } from '../types'
 import { ALL_BUILDINGS, getBuilding, buildCost } from './catalog'
-import { applyUnits, startBuild, isOperational, findBuilding, isBuildingUnlocked } from './economy'
+import { applyUnits, startBuild, findBuilding, isBuildingUnlocked } from './economy'
 import { drainFood, refreshHappiness } from './happiness'
 import { syncCity, capacityOf } from './population'
 import { marketSell, postOffer, takeOffer, addInv } from './market'
@@ -18,26 +18,17 @@ export interface BotContext {
 const SURPLUS_RESERVE = 30 // keep this much of any good before selling/offering
 
 export function stepBot(city: City, ctx: BotContext): void {
-  const operationalBefore = new Set(
-    city.buildings.filter(isOperational).map(b => b.defId),
-  )
+  // Cash → an instant new workplace/block: population is a spend now, not a grind.
+  if (ctx.rand() < 0.18) botConstruct(city, ctx)
 
-  // Operate every building a little — construction first, then production.
+  // Clicks drive production only — operate every building a little.
   for (const b of city.buildings) {
     applyUnits(city, b.defId, 20 + Math.floor(ctx.rand() * 40))
   }
-  for (const b of city.buildings) {
-    if (isOperational(b) && !operationalBefore.has(b.defId)) {
-      const def = getBuilding(b.defId)
-      ctx.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: def?.name ?? b.defId } })
-    }
-  }
-
-  if (ctx.rand() < 0.18) botConstruct(city, ctx)
 
   // Workers eat for the work this step did (CORE_LOOP §3): one meal per building
   // operated, mirroring the player's 1-food-per-click. Then re-derive population
-  // (a completed build added workers) and re-score happiness.
+  // and re-score happiness.
   drainFood(city, city.buildings.length)
   syncCity(city)
   refreshHappiness(city)
@@ -52,7 +43,7 @@ function botConstruct(city: City, ctx: BotContext): void {
   const crowded = cap === 0 || city.population > cap * 0.7
   // Grow housing when crowded; otherwise stand up a new affordable factory.
   if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
-    startBuild(city, 'housing-block')
+    startBuild(city, 'housing-block') // residential stack — no "built" toast
     return
   }
   const options = ALL_BUILDINGS.filter(def =>
@@ -64,7 +55,9 @@ function botConstruct(city: City, ctx: BotContext): void {
   )
   if (options.length === 0) return
   const pick = options[Math.floor(ctx.rand() * options.length)]
-  startBuild(city, pick.id)
+  if (startBuild(city, pick.id).ok) {
+    ctx.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: pick.name } })
+  }
 }
 
 function botTrade(city: City, ctx: BotContext): void {

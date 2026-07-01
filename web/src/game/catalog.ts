@@ -2,6 +2,7 @@
 import { BUILDINGS, BRANCHES, RESOURCES } from './catalog.data'
 import type { BuildingDef, ResourceInfo } from './catalog.data'
 import { RESIDENTIAL } from './civic'
+import { RECIPE_AMOUNTS } from './recipes'
 
 export interface BuildingMeta {
   id: string
@@ -24,12 +25,53 @@ function workersForTier(tier: number): number {
   return 40 + tier * 10
 }
 
-const productionMetas: BuildingMeta[] = BUILDINGS.map((b: BuildingDef) => ({
-  ...b,
-  isResidential: false,
-  capacityPerLevel: 0,
-  workersPerLevel: workersForTier(b.tier),
-}))
+/** Overlay hand-authored amounts (recipes.ts) onto a generated 1-in/1-out side.
+ *  Only re-weights resources the CSV already lists; anything unlisted keeps its
+ *  generated amount. Returns a fresh object — never mutates catalog.data. */
+function mergeAmounts(base: Record<string, number>, over?: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [r, qty] of Object.entries(base)) out[r] = over?.[r] ?? qty
+  return out
+}
+
+const productionMetas: BuildingMeta[] = BUILDINGS.map((b: BuildingDef) => {
+  const ov = RECIPE_AMOUNTS[b.id]
+  return {
+    ...b,
+    inputs: mergeAmounts(b.inputs, ov?.inputs),
+    outputs: mergeAmounts(b.outputs, ov?.outputs),
+    isResidential: false,
+    capacityPerLevel: 0,
+    workersPerLevel: workersForTier(b.tier),
+  }
+})
+
+/** Dev sanity check on recipes.ts: every override must name a real building and
+ *  only re-weight ingredients that building's CSV recipe actually has (you can't
+ *  invent a new ingredient in the overlay). Surfaced as a console.warn below and
+ *  asserted empty in recipes.test.ts. */
+export function recipeOverrideProblems(): string[] {
+  const problems: string[] = []
+  const byGenId = new Map(BUILDINGS.map(b => [b.id, b]))
+  for (const [id, ov] of Object.entries(RECIPE_AMOUNTS)) {
+    const def = byGenId.get(id)
+    if (!def) { problems.push(`unknown building id "${id}"`); continue }
+    for (const r of Object.keys(ov.inputs ?? {})) {
+      if (!(r in def.inputs)) problems.push(`${id}: input "${r}" is not in its recipe`)
+    }
+    for (const r of Object.keys(ov.outputs ?? {})) {
+      if (!(r in def.outputs)) problems.push(`${id}: output "${r}" is not in its recipe`)
+    }
+  }
+  return problems
+}
+
+{
+  const overlayProblems = recipeOverrideProblems()
+  if (overlayProblems.length && typeof console !== 'undefined') {
+    console.warn('[recipes] overlay problems:\n  ' + overlayProblems.join('\n  '))
+  }
+}
 
 export const RESIDENTIAL_META: BuildingMeta = {
   id: RESIDENTIAL.id,
@@ -95,11 +137,15 @@ export function tierUnlockPopulation(tier: number): number {
   return 50_000
 }
 
+/** "Iron Bricks×2 + Coal" — amounts shown only when >1, so a plain 1-in recipe
+ *  stays uncluttered. */
+function fmtSide(map: Record<string, number>): string {
+  return Object.entries(map).map(([r, q]) => (q > 1 ? `${r}×${q}` : r)).join(' + ')
+}
+
 export function formatRecipe(def: BuildingMeta): string {
   if (def.isResidential) return `+${def.capacityPerLevel} housing`
-  const ins = Object.keys(def.inputs)
-  const outs = Object.keys(def.outputs)
-  const recipe = `${ins.join(' + ') || '—'} → ${outs.join(' + ')}`
+  const recipe = `${fmtSide(def.inputs) || '—'} → ${fmtSide(def.outputs)}`
   // Lead with the population each level employs — building/upgrading a workplace
   // is how population grows (CORE_LOOP §1).
   return `+${def.workersPerLevel} pop · ${recipe}`

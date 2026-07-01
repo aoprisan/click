@@ -14,8 +14,14 @@
 ## 0. Foundational principle — the game is click-driven
 
 **One click = one tick. There are no ambient game timers for the player's city.**
-A click both *does work* (production / construction) **and** *advances state*
-(food drops). Nothing about the player's city changes between clicks.
+A click *does work* — **production**: it feeds the active building's next batch,
+which consumes inputs from stock and yields outputs — **and** *advances state*
+(food drops). A building **missing an input can't be worked at all**: clicks on
+it aren't counted (no work is banked), so a starved building never hoards clicks
+and then dumps a burst of output when you restock — and it can't be selected as
+the active target until it's supplied. **Building and upgrading are instant cash
+purchases, not click-built** (see §1a), so clicks only ever drive production, and
+nothing about the player's city changes between clicks.
 
 Each city is driven by exactly one player. Bots are stand-ins for absent
 players; for a live-feeling planet they are **simulated on a background timer**
@@ -34,6 +40,16 @@ players; for a live-feeling planet they are **simulated on a background timer**
 - Building and upgrading **workplaces** is therefore how the city's population
   rises. Population gates the tech tree (unlocks keyed off population).
 
+### 1a. Building & upgrading are instant (cash, not clicks)
+
+Buying a building or upgrading one is a **pure cash purchase that completes
+immediately** — the workplace/block is operational the moment you pay, and its
+workers count toward population that instant. There is no construction grind.
+This keeps the roles clean: **cash grows the city (population/housing), clicks
+run the factories (production).** The old click-built construction phase is gone;
+`applyUnits`' construction branch survives only to finish a build still in flight
+from a pre-instant save.
+
 ## 2. Housing → the housing half of happiness
 
 - **Housing `H`** = Σ capacity of all residential blocks.
@@ -49,9 +65,11 @@ players; for a live-feeling planet they are **simulated on a background timer**
   tunable.
 - **Food owned `F`** = `Σ count(good) × value(good)`. *(3 wheat + 2 steak =
   3×10 + 2×100 = 230.)*
-- **Each click consumes food** — "a worker is eating." **1 food unit per click**
-  for now (flat; to be re-balanced), drained from the **cheapest good upward**
-  (population eats its cheapest supplies first). Floors at 0.
+- **Each click that does work consumes food** — "a worker is eating." **1 food
+  unit per click** for now (flat; to be re-balanced), drained from the **cheapest
+  good upward** (population eats its cheapest supplies first). Floors at 0. *(A
+  click on a **stalled** building — one missing an input — is a no-op: no work,
+  so no food; see §5.)*
 - This is the **only** food sink — there is no ambient per-tick drain.
 - **Food score** = `P > 0 ? min(1, F / P) : 1`.
 
@@ -75,15 +93,24 @@ This is the self-balancing valve: let food run dry or leave workers homeless and
 happiness falls, so **every click gets weaker and less gets built**. Food and
 housing never *hard-block* clicking — they bite **through happiness**.
 
+Production **inputs** are the exception — the one **hard** gate. A building
+missing an input can't be worked at all: clicks on it aren't counted (no work is
+banked), so a starved building never hoards clicks and then dumps a burst of
+output when you restock, and it can't be the active target until it's supplied.
+So two distinct pressures shape the loop: the **soft** happiness valve
+(food/housing, which weaken clicks) and the **hard** supply-chain gate (inputs,
+which stop them).
+
 ## The loop
 
 ```
-click ─┬─→ produces units, scaled by happiness   (unhappy = wasted labour)
+click ─┬─→ production: banks work toward the next batch, scaled by happiness
+       │                                         (unhappy = slower factory)
        └─→ eats 1 food                            (the only food sink)
 
 food falls → food-happiness falls → weaker clicks      ← restock food to recover
-build workplace → +workers (population); if P > H → homeless → housing-happiness falls
-build residential → +housing → fewer homeless → housing-happiness rises
+buy/upgrade workplace (instant, cash) → +workers (population); if P > H → homeless → housing-happiness falls
+buy residential (instant, cash) → +housing → fewer homeless → housing-happiness rises
 produce / buy food → F rises → food-happiness rises
 ```
 

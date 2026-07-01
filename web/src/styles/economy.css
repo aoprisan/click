@@ -75,9 +75,13 @@
 .build-row:hover { border-color: var(--line); }
 .build-row.active { border-color: var(--amber); background: rgba(255, 176, 0, 0.09); }
 .build-row.constructing { border-color: var(--orange); }
+/* Missing an input → can't be aimed at (clicks wouldn't count). Dimmed + no-drop. */
+.build-row.blocked { opacity: 0.55; cursor: not-allowed; border-color: var(--line-red); }
+.build-row.blocked:hover { border-color: var(--line-red); }
 
 .build-name { font-size: 12px; font-weight: 600; }
 .build-recipe { font-size: 10px; color: var(--dim); }
+.build-needs { display: block; font-size: 10px; color: var(--red); margin-top: 1px; }
 
 .progress {
   height: 4px;
@@ -90,6 +94,10 @@
   inset: 0 auto 0 0;
   background: var(--orange);
 }
+/* Production progress on the active building, filling toward its next batch.
+   Green sets it apart from the (legacy) orange construction bar, and because
+   fill-rate = clickEffectiveness(happiness) it doubles as a live happiness read. */
+.progress.producing > span { background: var(--green); }
 
 .branch-tabs { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
 .branch-tab {

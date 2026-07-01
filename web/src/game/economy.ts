@@ -1,12 +1,14 @@
-// Construction, upgrades, and production — the "clicking is the work, money is
-// the gate" loop (design §4). Activity units are fed into a city's buildings;
-// money buys input shortfalls from the global market.
+// Building, upgrading, and production. Cash instantly builds and upgrades — a
+// workplace stands up operational the moment you pay, so population is a spend,
+// not a grind. CLICKS drive production only: activity units bank toward the
+// active building's next batch, which consumes inputs from the city's own stock
+// (no auto-buy) and yields outputs.
 import type { City, CityBuilding } from '../types'
 import {
-  getBuilding, buildCost, upgradeCost, constructionUnits, workPerBatch, resourceInfo,
+  getBuilding, buildCost, upgradeCost, workPerBatch,
   tierUnlockPopulation, type BuildingMeta,
 } from './catalog'
-import { marketBuy, addInv } from './market'
+import { addInv } from './market'
 
 export function findBuilding(city: City, defId: string): CityBuilding | undefined {
   return city.buildings.find(b => b.defId === defId)
@@ -24,17 +26,15 @@ export function isBuildingUnlocked(city: City, def: BuildingMeta): boolean {
 
 export interface BuildResult { ok: boolean; reason?: string }
 
-/** Start a building. New production buildings must not already exist; residential
- *  "builds" stack as extra blocks (each completes into +1 level/capacity). */
+/** Buy a building — instant. New production buildings must not already exist;
+ *  residential "builds" stack as extra blocks (each is +1 level/capacity). Cash
+ *  is the whole gate: pay and the workplace/block is operational immediately. */
 export function startBuild(city: City, defId: string): BuildResult {
   const def = getBuilding(defId)
   if (!def) return { ok: false, reason: 'unknown building' }
   const existing = findBuilding(city, defId)
   if (existing && !def.isResidential) {
     return { ok: false, reason: 'already built — upgrade instead' }
-  }
-  if (existing && existing.constructionRemaining > 0) {
-    return { ok: false, reason: 'construction already in progress' }
   }
   if (!existing && !isBuildingUnlocked(city, def)) {
     return { ok: false, reason: `unlocks at pop ${tierUnlockPopulation(def.tier).toLocaleString()}` }
@@ -43,15 +43,15 @@ export function startBuild(city: City, defId: string): BuildResult {
   if (city.cash < cost) return { ok: false, reason: 'not enough cash' }
   city.cash -= cost
   if (existing) {
-    // residential: queue another block on top of the current level
-    existing.constructionRemaining = constructionUnits(def)
+    existing.level += 1 // residential: another block, +1 capacity, right now
   } else {
-    city.buildings.push({ defId, level: 0, constructionRemaining: constructionUnits(def), workAccumulated: 0 })
+    city.buildings.push({ defId, level: 1, constructionRemaining: 0, workAccumulated: 0 })
   }
   return { ok: true }
 }
 
-/** Begin upgrading an operational building (raises output per batch). */
+/** Upgrade an operational building — instant. +1 level raises the worker amount
+ *  (population) and the output per batch immediately. */
 export function startUpgrade(city: City, defId: string): BuildResult {
   const def = getBuilding(defId)
   if (!def) return { ok: false, reason: 'unknown building' }
@@ -60,34 +60,38 @@ export function startUpgrade(city: City, defId: string): BuildResult {
   const cost = upgradeCost(def, b.level)
   if (city.cash < cost) return { ok: false, reason: 'not enough cash' }
   city.cash -= cost
-  b.constructionRemaining = constructionUnits(def)
+  b.level += 1
   return { ok: true }
 }
 
-/** Run one production batch if the inputs can be sourced (stock + market). */
-function tryRunBatch(city: City, defId: string): boolean {
+/** Inputs the city is short on for one batch of this building (empty ⇒ can run).
+ *  This is the supply-chain gate: a building only produces from goods already in
+ *  the city — nothing is auto-bought. A missing input must be produced upstream,
+ *  bought from the market by hand, or traded for. A building missing an input
+ *  can't be worked at all: clicks on it aren't counted (see applyUnits). */
+export function batchShortfall(city: City, def: BuildingMeta): string[] {
+  const missing: string[] = []
+  for (const [r, qty] of Object.entries(def.inputs)) {
+    if ((city.inventory[r] || 0) < qty) missing.push(r)
+  }
+  return missing
+}
+
+interface BatchResult { ran: boolean; missing: string[] }
+
+/** Run one production batch iff every input is already in stock (no auto-buy). */
+function tryRunBatch(city: City, defId: string): BatchResult {
   const def = getBuilding(defId)!
-  if (def.isResidential || Object.keys(def.outputs).length === 0) return false
+  if (def.isResidential || Object.keys(def.outputs).length === 0) return { ran: false, missing: [] }
   const b = findBuilding(city, defId)!
 
-  // Price out every input shortfall up front; abort if unaffordable.
-  const shortfalls: Array<{ r: string; need: number }> = []
-  let shortfallCost = 0
-  for (const [r, qty] of Object.entries(def.inputs)) {
-    const have = city.inventory[r] || 0
-    if (have < qty) {
-      const need = qty - have
-      shortfalls.push({ r, need })
-      shortfallCost += need * resourceInfo(r).buy
-    }
-  }
-  if (city.cash < shortfallCost) return false
+  const missing = batchShortfall(city, def)
+  if (missing.length > 0) return { ran: false, missing }
 
-  // Acquire shortfalls, then consume inputs and emit outputs (scaled by level).
-  for (const s of shortfalls) marketBuy(city, s.r, s.need)
+  // Consume inputs and emit outputs (scaled by level).
   for (const [r, qty] of Object.entries(def.inputs)) addInv(city, r, -qty)
   for (const [r, qty] of Object.entries(def.outputs)) addInv(city, r, qty * b.level)
-  return true
+  return { ran: true, missing: [] }
 }
 
 export interface ApplyResult {
@@ -95,16 +99,23 @@ export interface ApplyResult {
   completedConstruction: boolean
   /** number of production batches produced this call. */
   batches: number
+  /** inputs that stalled production this call (empty when nothing was blocked).
+   *  No work is banked while blocked — a stalled building can't be worked — so a
+   *  restock never dumps a hoarded burst; production just resumes cleanly. */
+  blockedOn: string[]
 }
 
-/** Feed activity units into a building: construction first, then production. */
+/** Feed a click's activity units into a building. Builds and upgrades are instant
+ *  now, so in practice this only runs PRODUCTION; the construction-drain branch
+ *  survives solely to finish a build still in flight from a pre-instant save. */
 export function applyUnits(city: City, defId: string, units: number): ApplyResult {
   const def = getBuilding(defId)
   const b = findBuilding(city, defId)
-  const result: ApplyResult = { completedConstruction: false, batches: 0 }
+  const result: ApplyResult = { completedConstruction: false, batches: 0, blockedOn: [] }
   if (!def || !b || units <= 0) return result
 
   if (b.constructionRemaining > 0) {
+    // legacy: drain any construction left over from an older, click-built save.
     const spent = Math.min(units, b.constructionRemaining)
     b.constructionRemaining -= spent
     units -= spent
@@ -117,10 +128,27 @@ export function applyUnits(city: City, defId: string, units: number): ApplyResul
 
   if (!isOperational(b) || def.isResidential) return result
 
+  // Supply-chain gate: a producer missing an input accepts NO work — the click's
+  // units are dropped, not banked. This is what stops a stalled building from
+  // hoarding clicks and then dumping a burst of output the moment an input lands.
+  const short = batchShortfall(city, def)
+  if (short.length > 0) {
+    result.blockedOn = short
+    return result
+  }
+
   const batch = workPerBatch(def)
   b.workAccumulated += units
   while (b.workAccumulated >= batch) {
-    if (!tryRunBatch(city, defId)) break
+    const { ran, missing } = tryRunBatch(city, defId)
+    if (!ran) {
+      // Inputs ran out partway through a mega-click's units (only reachable with a
+      // drink multiplier). Drop the unspendable remainder — keep at most a partial
+      // batch — so we never bank a reservoir past what actually ran.
+      result.blockedOn = missing
+      b.workAccumulated = b.workAccumulated % batch
+      break
+    }
     b.workAccumulated -= batch
     result.batches += 1
   }

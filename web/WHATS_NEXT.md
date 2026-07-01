@@ -17,6 +17,10 @@ implemented; the numbers are first-draft. Tune with `npm run balance`:
   easily, so happiness pins high — tighten if food should be a real squeeze.
 - **Cash** — the harness shows cities run near-broke (they spend on building);
   revisit `buildCost`/`upgradeCost` and market prices.
+- **Supply chains** — per-batch input/output **amounts** (`game/recipes.ts`) are
+  a first-draft overlay, and production now **stalls on a missing input** (no
+  auto-buy). Watch that early chains bootstrap and bots don't stall out; tune the
+  amounts and which raw goods seed a city.
 - **Re-enable deeper happiness** (energy/employment/fun/luxuries) by flipping
   `DEEP_HAPPINESS` in `happiness.ts` once the tech tree is balanced; that
   restores the mid-band happiness valve.
@@ -27,12 +31,19 @@ implemented; the numbers are first-draft. Tune with `npm run balance`:
   1 food; population = Σ building worker amounts (monotonic, residential = 0);
   housing must keep pace or workers are homeless; happiness = 50% housing + 50%
   food and scales click effectiveness; deeper sections parked behind a flag.
+- **Supply-chain production + instant build** — production consumes inputs from
+  the city's **own stock** and **stalls on a missing input** (no auto-buy);
+  per-batch amounts are a hand-authored overlay (`game/recipes.ts`). Building and
+  upgrading are **instant cash purchases** (no click-build), so clicks drive
+  production only. A stalled building can't be clicked or selected and banks no
+  work, so a restock never dumps a burst. The active building shows a live
+  production progress bar (green) that fills toward the next batch.
 - **Markets** — game-run global buy/sell (infinite source/sink) + player-priced
   city-to-city offers; ~190 bot cities produce, grow, build, and trade.
 - **Monetization (§8)** — Bucks shop: energy-drink multiplier matrix,
   autoclicker "employees", air-ticket city moves.
 - **Shell** — PWA, localStorage persistence, deterministic seeding, v1 tactical
-  aesthetic. 42 vitest specs over the pure logic.
+  aesthetic. 50 vitest specs over the pure logic.
 - **Balance harness** — `game/balanceHarness.ts` runs the whole world (bots + an
   optional clicking player) headless and deterministically for N ticks;
   `game/balanceHarness.test.ts` asserts population/cash/happiness stay in sane

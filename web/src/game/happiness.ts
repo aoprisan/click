@@ -37,7 +37,9 @@ export function drainFood(city: City, units: number): void {
     const have = city.inventory[g] || 0
     if (value <= 0 || have <= 0) continue
     const takeUnits = Math.min(need, have * value)
-    city.inventory[g] = have - takeUnits / value
+    // max(0, …): draining a good to empty can leave a sub-epsilon negative from
+    // float error (have*value/value ≠ have); the larder floors at 0.
+    city.inventory[g] = Math.max(0, have - takeUnits / value)
     need -= takeUnits
   }
 }

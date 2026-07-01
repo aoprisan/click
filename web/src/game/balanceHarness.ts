@@ -85,12 +85,11 @@ function seedCity(s: (typeof SEED_CITIES)[number]): City {
 // stays near full (food score = foodUnits / population).
 const FOOD_BUFFER = 1.3
 
-// Where the next click should go: feed the city first, then finish whatever is
-// under construction, otherwise keep banking food to fund the next building.
-function playerTarget(city: City): string {
-  if (foodUnits(city) < city.population * FOOD_BUFFER) return 'crop-farm'
-  const underway = city.buildings.find(b => b.constructionRemaining > 0)
-  if (underway) return underway.defId
+// Where the next click goes. Builds/upgrades are instant (a cash spend), so
+// clicks only ever drive production: the player farms, which refills the larder
+// (each click eats 1 food) and banks Grain to sell for the cash that funds the
+// next building.
+function playerTarget(): string {
   return 'crop-farm'
 }
 
@@ -120,15 +119,14 @@ function stepPlayer(city: City, meter: RateMeter, rand: () => number): void {
   const cap = capacityOf(city)
   const crowded = cap === 0 || city.population > cap * 0.8
   if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
-    startBuild(city, 'housing-block')
-  } else if (!city.buildings.some(b => b.constructionRemaining > 0)) {
-    // Nothing under construction and well-housed → grow population.
-    growWorkforce(city, rand)
+    startBuild(city, 'housing-block') // instant +housing when crowded
+  } else {
+    growWorkforce(city, rand) // well-housed → instantly build/upgrade a workplace
   }
 
   let clicks = 0
   while (meter.tryConsume() && clicks < 200) {
-    applyUnits(city, playerTarget(city), clickEffectiveness(city.happiness)) // mult = 1
+    applyUnits(city, playerTarget(), clickEffectiveness(city.happiness)) // mult = 1
     consumeClickFood(city) // a worker ate
     clicks++
   }

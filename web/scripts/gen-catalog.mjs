@@ -4,10 +4,15 @@
 // - world_countries_game_resources.csv → COUNTRY_RESOURCES (country → 3 raw resources)
 // - the union of every referenced resource → RESOURCES (a price registry)
 //
-// The design's global market is an infinite source/sink for EVERY resource, so
-// the production graph doesn't need to be closed: any dangling input is simply
-// buyable. We only normalize near-duplicate names via ALIASES so the same good
-// isn't priced twice under two spellings.
+// Every recipe is emitted 1-in / 1-out; real per-batch quantities are a
+// hand-authored overlay in src/game/recipes.ts, merged in catalog.ts.
+//
+// Production is gated on the city's own stock (economy.ts): a building STALLS on
+// a missing input rather than auto-buying it, so a dangling input is a real
+// supply-chain constraint, not a freebie. The global market is still an infinite
+// source/sink, but only for DELIBERATE buy/sell — you stock inputs by hand,
+// produce them upstream, or trade for them. We normalize near-duplicate names via
+// ALIASES so the same good isn't priced twice under two spellings.
 //
 // Run: npm run gen-catalog   (from web/)
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
