@@ -37,9 +37,12 @@ export function clampOfferPrice(r: string, price: number): number {
 }
 
 let offerSeq = 0
+/** Ids must stay unique across page loads: offers persist in the save while the
+ *  counter resets, and performance.now() is time-since-load — two sessions could
+ *  mint the same id. Epoch time + a random suffix keeps them distinct. */
 export function makeOfferId(): string {
   offerSeq += 1
-  return `offer-${offerSeq}-${Math.floor(performance.now())}`
+  return `offer-${offerSeq}-${Date.now().toString(36)}-${Math.floor(Math.random() * 36 ** 4).toString(36)}`
 }
 
 /** Post a sell offer; reserves the goods out of the seller's inventory. */

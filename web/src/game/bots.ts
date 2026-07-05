@@ -3,8 +3,8 @@
 // feels alive: they produce, grow, build, and trade against the same markets
 // the player uses.
 import type { City, GameEvent } from '../types'
-import { ALL_BUILDINGS, getBuilding, buildCost } from './catalog'
-import { applyUnits, startBuild, findBuilding, isBuildingUnlocked } from './economy'
+import { ALL_BUILDINGS, getBuilding, buildCost, upgradeCost, type BuildingMeta } from './catalog'
+import { applyUnits, startBuild, startUpgrade, findBuilding, isBuildingUnlocked, isOperational } from './economy'
 import { drainFood, refreshHappiness } from './happiness'
 import { syncCity, capacityOf } from './population'
 import { marketSell, postOffer, takeOffer, addInv } from './market'
@@ -38,25 +38,46 @@ export function stepBot(city: City, ctx: BotContext): void {
   ctx.emit({ type: 'city_update', data: city })
 }
 
-function botConstruct(city: City, ctx: BotContext): void {
-  const cap = capacityOf(city)
-  const crowded = cap === 0 || city.population > cap * 0.7
-  // Grow housing when crowded; otherwise stand up a new affordable factory.
-  if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
-    startBuild(city, 'housing-block') // residential stack — no "built" toast
-    return
-  }
-  const options = ALL_BUILDINGS.filter(def =>
+/** Spend cash on workforce: a new affordable, unlocked workplace when one
+ *  exists, otherwise upgrade an operational one (+1 level = more workers).
+ *  Shared by the bot brain and the balance harness's simulated player. Returns
+ *  the def when a NEW building went up (so callers can toast it); upgrades
+ *  return null. The upgrade arm matters structurally: every tier ≤2 workplace
+ *  together employs ~830, short of the 1,000 tier-3 unlock — without upgrades
+ *  a city can never climb past tier 2. */
+export function growWorkforce(city: City, rand: () => number, maxTier = 6): BuildingMeta | null {
+  const fresh = ALL_BUILDINGS.filter(def =>
     !def.isResidential &&
-    def.tier <= 6 &&
+    def.tier <= maxTier &&
     isBuildingUnlocked(city, def) &&
     !findBuilding(city, def.id) &&
     city.cash >= buildCost(def),
   )
-  if (options.length === 0) return
-  const pick = options[Math.floor(ctx.rand() * options.length)]
-  if (startBuild(city, pick.id).ok) {
-    ctx.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: pick.name } })
+  if (fresh.length > 0) {
+    const pick = fresh[Math.floor(rand() * fresh.length)]
+    return startBuild(city, pick.id).ok ? pick : null
+  }
+  const upgradable = city.buildings.filter(b => {
+    const def = getBuilding(b.defId)
+    return def && !def.isResidential && isOperational(b) && city.cash >= upgradeCost(def, b.level)
+  })
+  if (upgradable.length > 0) {
+    startUpgrade(city, upgradable[Math.floor(rand() * upgradable.length)].defId)
+  }
+  return null
+}
+
+function botConstruct(city: City, ctx: BotContext): void {
+  const cap = capacityOf(city)
+  const crowded = cap === 0 || city.population > cap * 0.7
+  // Grow housing when crowded; otherwise a new workplace or an upgrade.
+  if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
+    startBuild(city, 'housing-block') // residential stack — no "built" toast
+    return
+  }
+  const built = growWorkforce(city, ctx.rand)
+  if (built) {
+    ctx.emit({ type: 'building_built', data: { cityId: city.id, cityName: city.name, buildingName: built.name } })
   }
 }
 
@@ -99,7 +120,7 @@ function botTrade(city: City, ctx: BotContext): void {
       const o = best.seller.offers[best.offerIdx]
       const bought = takeOffer(city, best.seller, o, Math.ceil(o.qty * 0.5))
       if (bought > 0) {
-        ctx.emit({ type: 'trade', data: { cityId: city.id, cityName: city.name, counterpartyName: best.seller.name, resource: o.resource, qty: bought, kind: 'offer_buy' } })
+        ctx.emit({ type: 'trade', data: { cityId: city.id, cityName: city.name, counterpartyName: best.seller.name, counterpartyId: best.seller.id, resource: o.resource, qty: bought, kind: 'offer_buy' } })
         ctx.emit({ type: 'city_update', data: best.seller })
       }
     }

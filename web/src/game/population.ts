@@ -3,6 +3,7 @@
 // building's worker amount — and housing is the sum of residential capacity.
 import type { City } from '../types'
 import { getBuilding } from './catalog'
+import { getCountryResources } from './civic'
 
 /** Residential capacity — how many people the city can house. */
 export function capacityOf(city: City): number {
@@ -36,4 +37,18 @@ export function syncCity(city: City): number {
   city.population = workersOf(city)
   if (city.population > city.peakPopulation) city.peakPopulation = city.population
   return city.population
+}
+
+/** Backfill fields added to City after a save was written (the save key predates
+ *  them), then re-derive. Without this a pre-core-loop save is bricked: tier
+ *  unlocks compare against peakPopulation, and `pop > undefined` never promotes
+ *  it, so every building — tier 1 included — stays locked forever. */
+export function normalizeCity(city: City): City {
+  city.peakPopulation ??= 0
+  city.happinessBySection ??= {}
+  city.inventory ??= {}
+  city.offers ??= []
+  city.countryResources ??= getCountryResources(city.country)
+  syncCity(city)
+  return city
 }

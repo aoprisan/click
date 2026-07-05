@@ -25,6 +25,11 @@ export interface GameClient {
    *  city_update + throttle; a dropped click (rate cap) emits throttle only. */
   click(buildingDefId: string): void
 
+  /** Aim the player's clicks — and any running autoclicker — at a building.
+   *  Selecting a target in the UI must call this, or an autoclicker keeps
+   *  working whatever was clicked last. */
+  setActiveBuilding(buildingDefId: string): void
+
   /** Pay cash from the home city to start a new building (or housing). */
   startBuild(buildingDefId: string): Promise<void>
   /** Pay cash to begin upgrading an operational building (raises output). */

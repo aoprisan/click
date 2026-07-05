@@ -10,9 +10,9 @@
 import type { City } from '../types'
 import { SEED_CITIES } from './seedCities'
 import { getCountryResources } from './civic'
-import { ALL_BUILDINGS, getBuilding, buildCost, upgradeCost } from './catalog'
-import { stepBot, seedStartingInventory } from './bots'
-import { applyUnits, startBuild, startUpgrade, findBuilding, isOperational, isBuildingUnlocked } from './economy'
+import { getBuilding, buildCost } from './catalog'
+import { stepBot, seedStartingInventory, growWorkforce } from './bots'
+import { applyUnits, startBuild } from './economy'
 import { refreshHappiness, clickEffectiveness, consumeClickFood, foodUnits } from './happiness'
 import { syncCity, capacityOf } from './population'
 import { marketSell, addInv } from './market'
@@ -91,27 +91,6 @@ const FOOD_BUFFER = 1.3
 // next building.
 function playerTarget(): string {
   return 'crop-farm'
-}
-
-// Spend cash to grow population: a new affordable, unlocked workplace if one is
-// available, otherwise upgrade an operational workplace (more levels = more
-// workers). Housing carries 0 workers, so it's handled separately.
-function growWorkforce(city: City, rand: () => number): void {
-  const fresh = ALL_BUILDINGS.filter(def =>
-    !def.isResidential && def.tier <= 6 && isBuildingUnlocked(city, def) &&
-    !findBuilding(city, def.id) && city.cash >= buildCost(def),
-  )
-  if (fresh.length > 0) {
-    startBuild(city, fresh[Math.floor(rand() * fresh.length)].id)
-    return
-  }
-  const upgradable = city.buildings.filter(b => {
-    const def = getBuilding(b.defId)
-    return def && !def.isResidential && isOperational(b) && city.cash >= upgradeCost(def, b.level)
-  })
-  if (upgradable.length > 0) {
-    startUpgrade(city, upgradable[Math.floor(rand() * upgradable.length)].defId)
-  }
 }
 
 function stepPlayer(city: City, meter: RateMeter, rand: () => number): void {
