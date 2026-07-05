@@ -13,7 +13,7 @@ import {
   isOperational, batchShortfall,
 } from '../game/economy'
 import { refreshHappiness, clickEffectiveness, consumeClickFood } from '../game/happiness'
-import { syncCity } from '../game/population'
+import { syncCity, normalizeCity } from '../game/population'
 import { stepBot, seedStartingInventory } from '../game/bots'
 import {
   marketBuy, marketSell, postOffer, cancelOffer, takeOffer, addInv, giftResource,
@@ -116,17 +116,18 @@ export class MockGameClient implements GameClient {
       if (!parsed.cities || parsed.cities.length === 0) return null
       // Migration: instant build/upgrade replaced click-built construction. Finish
       // any construction still in flight from an older save so nothing is stranded
-      // half-built, then re-derive population/happiness for the cities we touched.
+      // half-built. Then normalize every city — backfilling fields the save
+      // predates (peakPopulation especially, or tier unlocks stay locked forever)
+      // and re-deriving population/happiness.
       for (const c of parsed.cities) {
-        let migrated = false
         for (const b of c.buildings) {
           if (b.constructionRemaining > 0) {
             if (b.level < 1) b.level = 1 // an unfinished first build → operational
             b.constructionRemaining = 0
-            migrated = true
           }
         }
-        if (migrated) { syncCity(c); refreshHappiness(c) }
+        normalizeCity(c)
+        refreshHappiness(c)
       }
       return parsed
     } catch {
@@ -233,23 +234,48 @@ export class MockGameClient implements GameClient {
     return short.length > 0 ? short : null
   }
 
-  /** Throttled "stalled — needs X" toast so a held click doesn't flood. */
-  private maybeStallNotice(defId: string, name: string, missing: string[]): void {
-    const key = `${defId}:${missing.join(',')}`
+  /** Throttled repeat-notice (same key ⇒ at most once per 4s) so a held click
+   *  doesn't flood the toast stack. */
+  private maybeNotice(key: string, text: string, tone: 'info' | 'warn' = 'warn'): void {
     const now = Date.now()
     if (key !== this.lastStallKey || now - this.lastStallAt > 4000) {
-      this.notify({ text: `${name} stalled — needs ${missing.join(', ')}`, tone: 'warn' })
+      this.notify({ text, tone })
       this.lastStallKey = key
       this.lastStallAt = now
     }
   }
 
+  private maybeStallNotice(defId: string, name: string, missing: string[]): void {
+    this.maybeNotice(`${defId}:${missing.join(',')}`, `${name} stalled — needs ${missing.join(', ')}`)
+  }
+
+  /** A building clicks can work: an operational, non-residential producer the
+   *  city owns. Clicking anything else must cost nothing (no throttle, no food). */
+  private workable(city: City, defId: string): boolean {
+    const def = getBuilding(defId)
+    const b = city.buildings.find(x => x.defId === defId)
+    return !!(def && b && isOperational(b) && !def.isResidential)
+  }
+
   // --- core loop ---
+  setActiveBuilding(buildingDefId: string): void {
+    this.activeBuildingId = buildingDefId
+  }
+
   click(buildingDefId: string): void {
     const city = this.home()
     if (!city || !this.operator) return
     this.activeBuildingId = buildingDefId
     const def = getBuilding(buildingDefId)
+
+    // Housing (or a building the city doesn't own) can't be worked at all — the
+    // click is free and does nothing, rather than silently eating throttle+food.
+    if (!this.workable(city, buildingDefId)) {
+      this.maybeNotice(`nowork:${buildingDefId}`, def?.isResidential
+        ? 'housing is bought with cash — aim clicks at a workplace'
+        : 'nothing to work here', 'info')
+      return
+    }
 
     // A producer short an input can't be worked — the click isn't counted at all
     // (no throttle spent, no food eaten, no units): just surface what it needs.
@@ -274,8 +300,7 @@ export class MockGameClient implements GameClient {
     // Surface what the click produced so the UI can flash live feedback (§7).
     if (res.batches > 0 && def) {
       const b = city.buildings.find(x => x.defId === buildingDefId)
-      const [output, perBatch] = Object.entries(def.outputs)[0] ?? []
-      if (output) {
+      for (const [output, perBatch] of Object.entries(def.outputs)) {
         this.bus.emit({ type: 'production', data: { cityId: city.id, buildingDefId, output, qty: perBatch * (b?.level ?? 1) * res.batches } })
       }
     }
@@ -401,6 +426,9 @@ export class MockGameClient implements GameClient {
   private runAutoclicker(home: City): void {
     const op = this.operator
     if (!op || !isAutoclicking(op, Date.now())) return
+    // An employee can't work housing or a building the city doesn't own any
+    // more than the player can — no throttle or food burned on a dead target.
+    if (!this.workable(home, this.activeBuildingId)) return
     const mult = currentMultiplier(op, Date.now())
     let fired = 0
     for (let i = 0; i < 30; i++) {

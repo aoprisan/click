@@ -67,6 +67,18 @@ export default function App() {
 
   const homeId = operator?.homeCityId ?? null
 
+  // Keep the client's notion of the click target in lock-step with the UI's —
+  // the autoclicker works game.activeBuilding, not React state.
+  const selectActiveBuilding = useCallback((id: string) => {
+    setActiveBuildingId(id)
+    game.setActiveBuilding(id)
+  }, [])
+
+  // Registering or moving home (air ticket) re-aims clicks at the new city's farm.
+  useEffect(() => {
+    if (homeId) selectActiveBuilding('crop-farm')
+  }, [homeId, selectActiveBuilding])
+
   // Keep a live id→city map for coordinate lookups (globe arcs) without
   // re-creating the trade handler on every city tick.
   useEffect(() => { cityRef.current = new Map(cities.map(c => [c.id, c])) }, [cities])
@@ -91,7 +103,7 @@ export default function App() {
       } else if (t.cityId === homeId) {
         const verb = t.kind === 'market_sell' ? 'Sold' : 'Bought'
         pushToast('TRADE', `${verb} ${t.qty} ${t.resource}`, 'trade')
-      } else if (t.counterpartyName && homeId && cities.find(c => c.id === homeId)?.name === t.counterpartyName) {
+      } else if (homeId && t.counterpartyId === homeId) {
         pushToast('TRADE', `${t.cityName} bought ${t.qty} ${t.resource} from you`, 'trade')
       }
       if (t.counterpartyId) addArc(t.cityId, t.counterpartyId, t.kind)
@@ -108,18 +120,18 @@ export default function App() {
   })
 
   // A transient great-circle arc between two trading cities, fading off the globe.
+  // The removal timer is scheduled outside the state updater — updaters must be
+  // pure (StrictMode runs them twice).
   const addArc = useCallback((aId: string, bId: string, kind: TradeArc['kind']) => {
-    setArcs(prev => {
-      const ca = cityRef.current.get(aId), cb = cityRef.current.get(bId)
-      if (!ca || !cb) return prev
-      const id = ++arcSeq.current
-      const arc: TradeArc = {
-        id, kind,
-        startLat: ca.lat, startLng: ca.lng, endLat: cb.lat, endLng: cb.lng,
-      }
-      setTimeout(() => setArcs(p => p.filter(x => x.id !== id)), 5000)
-      return [...prev.slice(-13), arc]
-    })
+    const ca = cityRef.current.get(aId), cb = cityRef.current.get(bId)
+    if (!ca || !cb) return
+    const id = ++arcSeq.current
+    const arc: TradeArc = {
+      id, kind,
+      startLat: ca.lat, startLng: ca.lng, endLat: cb.lat, endLng: cb.lng,
+    }
+    setArcs(prev => [...prev.slice(-13), arc])
+    setTimeout(() => setArcs(p => p.filter(x => x.id !== id)), 5000)
   }, [])
 
   const homeCity = useMemo(() => cities.find(c => c.id === homeId) ?? null, [cities, homeId])
@@ -132,7 +144,6 @@ export default function App() {
     game.register(name, cityId).then(op => {
       setOperator(op)
       setSelectedCityId(cityId)
-      setActiveBuildingId('crop-farm')
       pushToast('CITY', `Founded operations in your city`, 'good')
     })
   }, [pushToast])
@@ -219,7 +230,7 @@ export default function App() {
             <BuildPanel
               city={homeCity}
               activeBuildingId={activeBuildingId}
-              onSelectActive={setActiveBuildingId}
+              onSelectActive={selectActiveBuilding}
               onBuild={id => game.startBuild(id)}
               onUpgrade={id => game.startUpgrade(id)}
               onOpenTechTree={() => setTechTreeOpen(true)}

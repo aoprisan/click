@@ -33,13 +33,15 @@ export default function BuildPanel({ city, activeBuildingId, onSelectActive, onB
           // Operational producers that can't run for want of an input: name the
           // missing goods so the player knows what to build/buy/trade for. A
           // blocked building can't be aimed at — clicks wouldn't count anyway.
+          // Residential can't either: housing is bought with cash, not worked.
           const missing = op && !def.isResidential ? batchShortfall(city, def) : []
           const blocked = missing.length > 0
+          const selectable = producing && !blocked
           return (
             <div
               key={b.defId}
               className={`build-row${b.defId === activeBuildingId ? ' active' : ''}${constructing ? ' constructing' : ''}${blocked ? ' blocked' : ''}`}
-              onClick={() => { if (!blocked) onSelectActive(b.defId) }}
+              onClick={() => { if (selectable) onSelectActive(b.defId) }}
               title={blocked ? `Needs ${missing.join(', ')} to produce` : undefined}
             >
               <div className="row">

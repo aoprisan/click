@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { marketBuy, marketSell, clampOfferPrice, postOffer, takeOffer, giftResource } from './market'
+import { marketBuy, marketSell, clampOfferPrice, postOffer, takeOffer, giftResource, makeOfferId } from './market'
 import { resourceInfo } from './catalog'
 import { makeCity } from './testUtils'
 
@@ -51,5 +51,10 @@ describe('market', () => {
     expect(to.cash).toBe(500)
     // gifting to yourself is a no-op
     expect(giftResource(to, to, 'Grain', 5)).toBe(0)
+  })
+
+  it('mints distinct offer ids (offers outlive the page the counter lives in)', () => {
+    const ids = new Set(Array.from({ length: 1000 }, () => makeOfferId()))
+    expect(ids.size).toBe(1000)
   })
 })
