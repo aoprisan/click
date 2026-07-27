@@ -6,8 +6,9 @@ import type { GameClient, ConnectionState } from './GameClient'
 import { EventBus } from './GameClient'
 import type { City, Operator, WorldStats, GameEvent, CityBuilding } from '../types'
 import { SEED_CITIES } from '../game/seedCities'
-import { getCountryResources } from '../game/civic'
-import { getBuilding } from '../game/catalog'
+import { getCountryResources, foodGoods, RESIDENTIAL_DEF } from '../game/civic'
+import { getBuilding, allBuildings, defaultWorkBuildingId } from '../game/catalog'
+import { onConfigChange } from '../game/config'
 import {
   applyUnits, startBuild as ecoStartBuild, startUpgrade as ecoStartUpgrade,
   isOperational, batchShortfall,
@@ -55,7 +56,7 @@ export class MockGameClient implements GameClient {
   private timer: ReturnType<typeof setInterval> | null = null
   private saveTimer: ReturnType<typeof setTimeout> | null = null
   /** the building the player's clicks (and the autoclicker) currently target. */
-  private activeBuildingId = 'crop-farm'
+  private activeBuildingId = defaultWorkBuildingId()
   /** throttles the "stalled — needs X" notice so a held click doesn't spam it. */
   private lastStallKey = ''
   private lastStallAt = 0
@@ -69,10 +70,41 @@ export class MockGameClient implements GameClient {
       this.seed()
     }
     this.startTicking()
+    // New config = new building ids, prices and worker counts: the cities in
+    // memory were built against the old tree, so the world starts over.
+    onConfigChange(() => { void this.resetGame('config updated') })
+  }
+
+  /** Throw the world away and reseed it from the CURRENT config (design: the
+   *  Config panel's "apply" does this for you, and it's also a button of its
+   *  own). Everything goes: cities, operator, the localStorage save. */
+  async resetGame(reason = 'game data reset'): Promise<void> {
+    if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null }
+    try { localStorage.removeItem(SAVE_KEY) } catch { /* disabled storage */ }
+    this.cities.clear()
+    this.operator = null
+    this.meter = new RateMeter() // re-reads the click-throttle knobs
+    this.activeBuildingId = defaultWorkBuildingId()
+    this.lastStallKey = ''
+    this.lastStallAt = 0
+    this.seed()
+    this.bus.emit({ type: 'world_reset', data: { reason } })
+    this.scheduleSave()
   }
 
   // --- seeding ---
   private seed(): void {
+    // Everything a starting city gets is resolved from the ACTIVE config: an
+    // uploaded tech tree needn't contain a Crop Farm, or Grain, or any of the
+    // hand-picked variety buildings.
+    const starterId = defaultWorkBuildingId()
+    const variety = EXTRA_SEED_BUILDINGS.filter(id => getBuilding(id))
+    const fallbackVariety = allBuildings()
+      .filter(b => !b.isResidential && b.tier <= 2 && b.id !== starterId)
+      .map(b => b.id)
+    const pool = variety.length > 0 ? variety : fallbackVariety
+    const staple = foodGoods()[0]
+
     for (const s of SEED_CITIES) {
       const h = hashStr(s.id)
       const countryResources = getCountryResources(s.country)
@@ -91,16 +123,16 @@ export class MockGameClient implements GameClient {
         happiness: 50,
         happinessBySection: {},
         inventory: {},
-        buildings: [building('housing-block', 1), building('crop-farm', 1)],
+        buildings: [building(RESIDENTIAL_DEF.id, 1), building(starterId, 1)],
         offers: [],
         countryResources,
       }
       // a third building for variety, tied to the city's hash
-      const extra = EXTRA_SEED_BUILDINGS[h % EXTRA_SEED_BUILDINGS.length]
-      if (getBuilding(extra)) city.buildings.push(building(extra, 1))
+      const extra = pool.length > 0 ? pool[h % pool.length] : undefined
+      if (extra && extra !== starterId) city.buildings.push(building(extra, 1))
 
       seedStartingInventory(city)
-      addInv(city, 'Grain', 60)
+      if (staple) addInv(city, staple, 60) // a larder to click through
       syncCity(city) // population/capacity/peak derived from the seeded buildings
       refreshHappiness(city)
       this.cities.set(city.id, city)
@@ -483,7 +515,7 @@ export class MockGameClient implements GameClient {
     dest.isBot = false
     op.homeCityId = cityId
     op.items['air-ticket'] -= 1
-    this.activeBuildingId = 'crop-farm'
+    this.activeBuildingId = defaultWorkBuildingId()
     this.notify({ text: `Moved home to ${dest.name}`, tone: 'good' })
     this.bus.emit({ type: 'operator_update', data: op })
     this.bus.emit({ type: 'city_update', data: dest })

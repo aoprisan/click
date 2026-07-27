@@ -359,3 +359,104 @@
   .right-stack { max-height: calc(100vh - 180px); }
   .dial { transform: scale(0.8); }
 }
+
+/* ============================================================
+   Config console: swap the game-data CSVs live (game/config.ts)
+   ============================================================ */
+.config-open-btn {
+  position: absolute;
+  top: 96px;
+  left: 24px;
+  /* above the enlistment overlay (100) so game data can be swapped before — and
+     right after — a world reset, when onboarding is showing again; still below
+     the config/tech modals themselves (160). */
+  z-index: 110;
+  padding: 6px 11px;
+  font-family: var(--font-stencil);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: rgba(8, 11, 7, 0.72);
+  border: 1px solid var(--line-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: color 0.15s ease, border-color 0.15s ease;
+  animation: bootIn 0.5s 0.3s both;
+}
+.config-open-btn:hover { color: var(--amber); border-color: var(--line); }
+
+.config-modal { width: 720px; }
+
+.config-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--dim);
+  border-top: 1px solid var(--line-dim);
+  border-bottom: 1px solid var(--line-dim);
+  padding: 7px 0;
+}
+.config-summary b { color: var(--amber); font-weight: 400; }
+
+.config-status {
+  border-left: 2px solid currentColor;
+  padding: 5px 8px;
+  background: rgba(255, 176, 0, 0.05);
+}
+
+.config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.config-note { line-height: 1.6; }
+.config-note b { color: var(--orange); font-weight: 400; }
+
+.config-file {
+  border: 1px solid var(--line-dim);
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.config-paste { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.config-textarea {
+  width: 100%;
+  min-height: 130px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre;
+}
+
+.config-warnings ul { margin: 4px 0 0 16px; color: var(--orange); line-height: 1.7; }
+
+.config-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line-dim);
+  padding-top: 10px;
+}
+.btn-ghost.danger { color: var(--red); border-color: var(--line-red); }
+.btn-ghost.danger:hover { color: #ff7a6f; border-color: var(--red); }
+
+@media (max-width: 560px) {
+  .config-open-btn { top: 94px; }
+  .config-modal { width: 100%; padding: 14px; }
+}

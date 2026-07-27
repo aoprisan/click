@@ -8,15 +8,22 @@ here, roughly in priority order. See `README.md` for how it's built and
 ## Next — balance the new core loop
 
 The click-driven core loop ([`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md)) is
-implemented; the numbers are first-draft. Tune with `npm run balance`:
+implemented; the numbers are first-draft. Most of them are now the **tuning CSV**
+(built-in values in `game/tuning.ts`), editable live in the ⚙ Config panel or in
+code. Tune with `npm run balance`:
 
-- **Worker amounts** (`catalog.ts` `workersForTier`) set how fast population
-  climbs and how soon tech tiers unlock.
-- **Food** — `FOOD_UNIT_VALUE` (`civic.ts`) and `FOOD_PER_CLICK` (`happiness.ts`)
-  set how hard feeding the workforce bites. Today bots/players accumulate food
+- **Worker amounts** (`workers.base` / `workers.per_tier`) set how fast
+  population climbs and how soon tech tiers unlock.
+- **Food** — `food_value.<good>` and `food.per_click` set how hard feeding the
+  workforce bites. Today bots/players accumulate food
   easily, so happiness pins high — tighten if food should be a real squeeze.
 - **Cash** — the harness shows cities run near-broke (they spend on building);
-  revisit `buildCost`/`upgradeCost` and market prices.
+  revisit `build_cost.*` / `upgrade_cost.per_level` and `price.*` / `market.spread`.
+- **Unobtainable inputs.** The shipped tech tree has 16 ingredients nothing
+  produces and no country digs up (Water, Concrete, AI Cores, Microchips,
+  Graphene, Autonomous Drones, Tight Shale Stream), so every building needing one
+  can never run. The Config panel lists them under Warnings — fix the CSV (add a
+  producer, a country raw, or an alias) rather than the code.
 - **Supply chains** — per-batch input/output **amounts** (`game/recipes.ts`) are
   a first-draft overlay, and production now **stalls on a missing input** (no
   auto-buy). Watch that early chains bootstrap and bots don't stall out; tune the
@@ -64,6 +71,13 @@ implemented; the numbers are first-draft. Tune with `npm run balance`:
   house), shown once.
 - **Responsive pass (§5)** — media queries so the absolute HUD panels reflow on
   narrow / short viewports instead of overlapping.
+- **Live game data + reset (⚙ Config)** — the tech tree, recipe amounts, tuning
+  numbers and country resources are four CSVs parsed in the browser and swappable
+  at runtime: download what's running, edit in a spreadsheet, upload or paste it
+  back, revert per file or wholesale. Uploads persist in `localStorage`
+  (`gc.config.v1`). Applying one restarts the world (`GameClient.resetGame()`),
+  which is also a standalone **Reset game data** button. Broken CSVs are rejected
+  without disturbing the running game; softer problems show as warnings.
 
 ## Next — toward a real backend
 
@@ -86,6 +100,5 @@ seasons & leaderboards, alliances, battle pass, cosmetics, market fees.
 
 - Bot trading is stochastic and lightly tuned — offer books can thin out or pile
   up; no market-depth balancing yet.
-- No reset/new-game control in the UI (clear `localStorage` key `gc.save.v1`).
 - The three.js globe bundle is ~2.8 MB (single chunk); code-split before any
   real launch.

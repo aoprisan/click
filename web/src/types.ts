@@ -123,6 +123,13 @@ export interface NoticeEvent {
   tone: 'info' | 'good' | 'warn'
 }
 
+/** The whole world was thrown away and reseeded — every city, the operator and
+ *  the save are gone (a manual reset, or a config swap that invalidated them).
+ *  The UI must drop all cached state and re-read the client. */
+export interface WorldResetEvent {
+  reason: string
+}
+
 export type GameEvent =
   | { type: 'city_update'; data: City }
   | { type: 'operator_update'; data: Operator }
@@ -131,3 +138,4 @@ export type GameEvent =
   | { type: 'building_built'; data: BuildingBuiltEvent }
   | { type: 'throttle'; data: ThrottleState }
   | { type: 'notice'; data: NoticeEvent }
+  | { type: 'world_reset'; data: WorldResetEvent }

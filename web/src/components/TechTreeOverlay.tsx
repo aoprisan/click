@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import type { City } from '../types'
 import {
-  ALL_BUILDINGS, ALL_BRANCHES, buildCost, formatRecipe, tierUnlockPopulation,
+  allBuildings, allBranches, buildCost, formatRecipe, tierUnlockPopulation,
 } from '../game/catalog'
 import { isBuildingUnlocked } from '../game/economy'
 
@@ -27,7 +27,7 @@ export default function TechTreeOverlay({ city, onBuild, onClose }: Props) {
   const builtIds = new Set(city.buildings.map(b => b.defId))
   // Residential blocks stack (always buildable); production buildings are
   // one-per-city — once built they leave the catalog and you upgrade instead.
-  const catalog = ALL_BUILDINGS.filter(b => b.branch === branch && (b.isResidential || !builtIds.has(b.id)))
+  const catalog = allBuildings().filter(b => b.branch === branch && (b.isResidential || !builtIds.has(b.id)))
 
   return (
     <div className="tech-overlay" onClick={onClose}>
@@ -38,7 +38,7 @@ export default function TechTreeOverlay({ city, onBuild, onClose }: Props) {
         </div>
 
         <div className="branch-tabs">
-          {ALL_BRANCHES.map(b => (
+          {allBranches().map(b => (
             <button key={b} className={`branch-tab${b === branch ? ' sel' : ''}`} onClick={() => setBranch(b)}>
               {b}
             </button>

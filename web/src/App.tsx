@@ -3,7 +3,7 @@ import { game } from './client'
 import { useGameClient } from './hooks/useGameClient'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
 import type { City, Operator } from './types'
-import { getBuilding } from './game/catalog'
+import { getBuilding, defaultWorkBuildingId } from './game/catalog'
 import { clickEffectiveness } from './game/happiness'
 import type { TradeArc, GlobeHandle } from './components/Globe'
 import Globe from './components/Globe'
@@ -20,12 +20,13 @@ import ClickButton from './components/ClickButton'
 import ToastSystem from './components/ToastSystem'
 import type { Toast } from './components/ToastSystem'
 import PwaPrompts from './components/PwaPrompts'
+import ConfigPanel from './components/ConfigPanel'
 
 export default function App() {
   const [cities, setCities] = useState<City[]>([])
   const [operator, setOperator] = useState<Operator | null>(null)
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
-  const [activeBuildingId, setActiveBuildingId] = useState('crop-farm')
+  const [activeBuildingId, setActiveBuildingId] = useState(defaultWorkBuildingId)
   const [meter, setMeter] = useState(1)
   const [blocked, setBlocked] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -34,6 +35,7 @@ export default function App() {
   const [arcs, setArcs] = useState<TradeArc[]>([])
   const [hudHidden, setHudHidden] = useState(false)
   const [techTreeOpen, setTechTreeOpen] = useState(false)
+  const [configOpen, setConfigOpen] = useState(false)
   const toastSeq = useRef(0)
   const arcSeq = useRef(0)
   const lastProdToast = useRef(0)
@@ -76,7 +78,7 @@ export default function App() {
 
   // Registering or moving home (air ticket) re-aims clicks at the new city's farm.
   useEffect(() => {
-    if (homeId) selectActiveBuilding('crop-farm')
+    if (homeId) selectActiveBuilding(defaultWorkBuildingId())
   }, [homeId, selectActiveBuilding])
 
   // Keep a live id→city map for coordinate lookups (globe arcs) without
@@ -117,6 +119,17 @@ export default function App() {
       pushToast('PROD', `▲ ${Math.round(p.qty)} ${p.output}`, 'build')
     },
     onNotice: n => pushToast(n.tone === 'warn' ? 'WARN' : 'INFO', n.text, n.tone === 'warn' ? 'warn' : 'info'),
+    // The world was thrown away (config swap or a manual reset): every city and
+    // the operator are gone, so drop all cached state and re-read the client.
+    onWorldReset: r => {
+      setOperator(null)
+      setSelectedCityId(null)
+      setArcs([])
+      setTechTreeOpen(false)
+      setActiveBuildingId(defaultWorkBuildingId())
+      game.listCities().then(setCities)
+      pushToast('WORLD', `${r.reason} — world reseeded`, 'warn')
+    },
   })
 
   // A transient great-circle arc between two trading cities, fading off the globe.
@@ -165,6 +178,16 @@ export default function App() {
         <span className="logo-main">GLOBAL CONFLICT</span>
         <span className="logo-sub">CITY ECONOMY · V2</span>
       </div>
+
+      {booted && (
+        <button
+          className="config-open-btn"
+          onClick={() => setConfigOpen(true)}
+          title="Load game-data CSVs (tech tree, recipe amounts, tuning)"
+        >
+          ⚙ Config
+        </button>
+      )}
 
       {booted && (
         <button
@@ -256,6 +279,13 @@ export default function App() {
           city={homeCity}
           onBuild={id => game.startBuild(id)}
           onClose={() => setTechTreeOpen(false)}
+        />
+      )}
+
+      {configOpen && (
+        <ConfigPanel
+          onClose={() => setConfigOpen(false)}
+          onResetGame={() => game.resetGame('game data reset')}
         />
       )}
 
