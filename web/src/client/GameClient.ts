@@ -52,6 +52,13 @@ export interface GameClient {
   /** Spend an air ticket to change the home city. */
   moveHomeCity(cityId: string): Promise<void>
 
+  // --- admin ---
+  /** Throw the world away and reseed it: every city, the operator and the
+   *  persisted save are gone. Used by the Config panel (a new tech tree makes
+   *  the old cities meaningless) and by "reset game data" on its own. Emits
+   *  world_reset, which the UI treats as "drop everything you cached". */
+  resetGame(reason?: string): Promise<void>
+
   // --- realtime ---
   on(handler: (e: GameEvent) => void): () => void
   connectionState(): ConnectionState

@@ -10,8 +10,9 @@
 // is kept at the bottom so re-enabling it is a one-line flip.
 import type { City, SubsectionKey } from '../types'
 import { getBuilding } from './catalog'
+import { knobs } from './config'
 import { isOperational } from './economy'
-import { FOOD_GOODS, FOOD_UNIT_VALUE, ENERGY_GOODS, LUXURY_GOODS, FUN_GOODS } from './civic'
+import { foodGoods, foodValues, ENERGY_GOODS, LUXURY_GOODS, FUN_GOODS } from './civic'
 
 const DEEP_HAPPINESS = false
 
@@ -21,19 +22,21 @@ function clamp01(x: number): number { return Math.max(0, Math.min(1, x)) }
 
 /** Total food the city holds, in food units: Σ count(good) × per-good value. */
 export function foodUnits(city: City): number {
+  const values = foodValues()
   let n = 0
-  for (const g of FOOD_GOODS) n += (city.inventory[g] || 0) * (FOOD_UNIT_VALUE[g] || 0)
+  for (const g of foodGoods()) n += (city.inventory[g] || 0) * (values[g] || 0)
   return n
 }
 
-/** Drain `units` of food, cheapest good first (FOOD_GOODS is cheapest→dearest);
+/** Drain `units` of food, cheapest good first (foodGoods() is cheapest→dearest);
  *  food floors at 0. A click eats a fraction of a good worth ≥1 unit, so good
  *  counts may go fractional. */
 export function drainFood(city: City, units: number): void {
+  const values = foodValues()
   let need = units
-  for (const g of FOOD_GOODS) {
+  for (const g of foodGoods()) {
     if (need <= 0) break
-    const value = FOOD_UNIT_VALUE[g] || 0
+    const value = values[g] || 0
     const have = city.inventory[g] || 0
     if (value <= 0 || have <= 0) continue
     const takeUnits = Math.min(need, have * value)
@@ -44,10 +47,11 @@ export function drainFood(city: City, units: number): void {
   }
 }
 
-/** One worker eats 1 food unit per click that does work (CORE_LOOP §3). */
-export const FOOD_PER_CLICK = 1
+/** One worker eats `food.per_click` food units per click that does work
+ *  (CORE_LOOP §3). */
+export function foodPerClick(): number { return knobs().foodPerClick }
 export function consumeClickFood(city: City): void {
-  drainFood(city, FOOD_PER_CLICK)
+  drainFood(city, foodPerClick())
 }
 
 // --- happiness ---------------------------------------------------------------
@@ -123,7 +127,7 @@ function deepSectionScores(city: City): Record<SubsectionKey, number> {
   const pop = Math.max(1, city.population)
   const cap = city.populationCapacity
   const housing = cap > 0 ? clamp01(1.2 - city.population / cap) : 0
-  const food = clamp01(stockOf(city, FOOD_GOODS) / (pop * STOCK_PER_CAP.food))
+  const food = clamp01(stockOf(city, foodGoods()) / (pop * STOCK_PER_CAP.food))
   const energy = clamp01(stockOf(city, ENERGY_GOODS) / (pop * STOCK_PER_CAP.energy))
   const jobs = city.buildings.filter(b => {
     const def = getBuilding(b.defId)

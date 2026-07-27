@@ -3,7 +3,7 @@
 // feels alive: they produce, grow, build, and trade against the same markets
 // the player uses.
 import type { City, GameEvent } from '../types'
-import { ALL_BUILDINGS, getBuilding, buildCost, upgradeCost, type BuildingMeta } from './catalog'
+import { allBuildings, getBuilding, residentialMeta, buildCost, upgradeCost, type BuildingMeta } from './catalog'
 import { applyUnits, startBuild, startUpgrade, findBuilding, isBuildingUnlocked, isOperational } from './economy'
 import { drainFood, refreshHappiness } from './happiness'
 import { syncCity, capacityOf } from './population'
@@ -46,7 +46,7 @@ export function stepBot(city: City, ctx: BotContext): void {
  *  together employs ~830, short of the 1,000 tier-3 unlock — without upgrades
  *  a city can never climb past tier 2. */
 export function growWorkforce(city: City, rand: () => number, maxTier = 6): BuildingMeta | null {
-  const fresh = ALL_BUILDINGS.filter(def =>
+  const fresh = allBuildings().filter(def =>
     !def.isResidential &&
     def.tier <= maxTier &&
     isBuildingUnlocked(city, def) &&
@@ -71,8 +71,8 @@ function botConstruct(city: City, ctx: BotContext): void {
   const cap = capacityOf(city)
   const crowded = cap === 0 || city.population > cap * 0.7
   // Grow housing when crowded; otherwise a new workplace or an upgrade.
-  if (crowded && city.cash >= buildCost(getBuilding('housing-block')!)) {
-    startBuild(city, 'housing-block') // residential stack — no "built" toast
+  if (crowded && city.cash >= buildCost(residentialMeta())) {
+    startBuild(city, residentialMeta().id) // residential stack — no "built" toast
     return
   }
   const built = growWorkforce(city, ctx.rand)

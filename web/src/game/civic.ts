@@ -1,43 +1,44 @@
 // Hand-authored civic layer the supply-chain CSV doesn't cover: residential
 // housing (which houses the workforce), the goods that satisfy each happiness
 // need, and the country→raw-resource lookup (with name normalization).
-import { COUNTRY_RESOURCES } from './catalog.data'
+import { catalogData, knobs, onConfigChange } from './config'
 
 // --- residential building: housing for the workforce (CORE_LOOP §2) ---
 // Residential blocks add housing *capacity*, not population. Population is the
 // sum of building worker amounts (CORE_LOOP §1); housing that lags it leaves
-// workers homeless, which pulls happiness down.
-export const RESIDENTIAL = {
+// workers homeless, which pulls happiness down. Its cost/capacity numbers are
+// tuning knobs (residential.*) — catalog.ts reads them through buildCost() etc.
+export const RESIDENTIAL_DEF = {
   id: 'housing-block',
   name: 'Housing Block',
   branch: 'Civic',
-  /** cash to start construction */
-  cost: 250,
-  /** activity units of work to finish construction */
-  constructionUnits: 200,
-  /** population capacity each completed block adds */
-  capacityPerLevel: 400,
 } as const
 
 // --- which goods satisfy which happiness subsection (design §3) ---
 // A subsection's score = stock of its goods vs the population's demand. Names
-// must match keys in the generated RESOURCES registry. Fun & luxuries draw on
-// the deep end of the tech tree on purpose: they only weigh on happiness once a
-// city is large (happiness STAGES), so they are the late-game problems a 50k
-// city has to solve — wire more goods in here to widen those options.
-export const FOOD_GOODS = ['Grain', 'Flour', 'High-Yield Food', 'Packaged Rations', 'Specialty Produce']
+// must match resources in the tech tree. Fun & luxuries draw on the deep end of
+// the tree on purpose: they only weigh on happiness once a city is large
+// (happiness STAGES), so they are the late-game problems a 50k city has to solve.
 
-// How many "food units" one of each food good is worth (design CORE_LOOP §3).
-// A city's food = Σ count(good) × value(good); a worker eats 1 food unit per
-// click, drained cheapest-good-first. Ascending so the chain rewards refining
-// raw grain into denser food. Tunable — first-draft values.
-export const FOOD_UNIT_VALUE: Record<string, number> = {
-  Grain: 10,
-  Flour: 30,
-  'High-Yield Food': 80,
-  'Packaged Rations': 160,
-  'Specialty Produce': 300,
+/** How many "food units" one of each food good is worth (CORE_LOOP §3), from
+ *  the tuning CSV. A city's food = Σ count(good) × value(good). */
+export function foodValues(): Record<string, number> {
+  return knobs().foodValues
 }
+
+let foodGoodsCache: string[] = []
+function rebuildFoodGoods(): void {
+  // Cheapest-first: a click drains the least valuable food good first, so the
+  // chain rewards refining raw grain into denser food.
+  const values = foodValues()
+  foodGoodsCache = Object.keys(values).sort((a, b) => values[a] - values[b])
+}
+rebuildFoodGoods()
+onConfigChange(rebuildFoodGoods)
+
+/** The food goods, cheapest → dearest (that ordering is what drainFood eats in). */
+export function foodGoods(): string[] { return foodGoodsCache }
+
 export const ENERGY_GOODS = ['Grid Energy', 'High-Voltage Power', 'Mega Power Grid', 'Renewable Clean Energy', 'Atomic Baseload Energy']
 export const LUXURY_GOODS = [
   // Apparel — the original luxury chain…
@@ -67,12 +68,23 @@ const COUNTRY_ALIASES: Record<string, string> = {
   'Turks and Caicos Islands': 'Bahamas',
 }
 
-const DEFAULT_RESOURCES = ['Grain', 'Timber', 'Iron Ore']
+const PREFERRED_DEFAULTS = ['Grain', 'Timber', 'Iron Ore']
+
+/** Raw goods for a country the resources CSV doesn't cover. Falls back to raw
+ *  (depth 0) goods from the active config when the usual three aren't in it —
+ *  an uploaded tech tree needn't have heard of Grain. */
+function defaultResources(): string[] {
+  const resources = catalogData().resources
+  const known = PREFERRED_DEFAULTS.filter(r => r in resources)
+  if (known.length > 0) return known
+  return Object.keys(resources).filter(r => resources[r].depth === 0).slice(0, 3)
+}
 
 export function getCountryResources(country: string): string[] {
-  const direct = COUNTRY_RESOURCES[country]
+  const table = catalogData().countryResources
+  const direct = table[country]
   if (direct) return direct
-  const aliased = COUNTRY_ALIASES[country] && COUNTRY_RESOURCES[COUNTRY_ALIASES[country]]
+  const aliased = COUNTRY_ALIASES[country] && table[COUNTRY_ALIASES[country]]
   if (aliased) return aliased
-  return DEFAULT_RESOURCES
+  return defaultResources()
 }

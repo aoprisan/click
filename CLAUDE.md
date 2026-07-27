@@ -129,8 +129,11 @@ npm test            # vitest — pure game-logic suites
 npm run balance     # headless balance harness — band report + sane-band asserts
 npm run build       # tsc -b + vite build (emits PWA service worker)
 npm run preview     # serve the production build locally
-npm run gen-catalog # regenerate src/game/catalog.data.ts from ../docs/*.csv
 ```
+
+There is no catalog-generation step: `docs/*.csv` are bundled as text and parsed
+in the browser at boot, so game data can also be swapped at runtime (see **Live
+game data** below).
 
 No `make seed`, no Go backend, no second terminal — just `npm run dev`.
 
@@ -141,13 +144,19 @@ No `make seed`, no Go backend, no second terminal — just `npm run dev`.
 Three layers, designed so the in-browser mock can later be swapped for a server without touching the UI:
 
 - **`src/client/`** — the seam. `GameClient.ts` is the interface; `MockGameClient.ts` holds all state, a `setInterval` tick loop, bot simulation, and `localStorage` persistence. A future `LiveGameClient` (fetch + WebSocket against a Go backend) drops in here.
-- **`src/game/`** — pure, unit-tested logic (no React, no I/O): `catalog` (buildings/prices, with `catalog.data.ts` generated from the CSVs), `recipes` (hand-authored per-building input/output **amounts** overlaid on the generated 1-in/1-out recipes), `economy` (instant build/upgrade + input-gated production), `population`, `happiness`, `civic` (per-capita needs), `market` (global + city-to-city offers + gifting), `bots`, `throttle` (click-rate cap), `shop` (Bucks monetization), `seedCities`, and `balanceHarness` (headless deterministic world sim).
-- **`src/components/`** — React UI in the v1 "tactical console" aesthetic: `Globe`, `BuildPanel`, `CityPanel`, `MarketPanel`, `TradePanel`, `ShopPanel`, `Leaderboard`, `ClickButton` (the GROW dial + throttle meter), `Tutorial`/`Onboarding`, `ToastSystem`, `PwaPrompts`, `ErrorBoundary`.
+- **`src/game/`** — pure, unit-tested logic (no React, no I/O): `config` (the live config store — active CSVs, apply/revert, persistence, change subscribers), `csv` + `catalogBuild` (CSV text → buildings/country resources/priced resources), `tuning` (the recipe-amounts and numeric-knob CSVs, and the built-in `DEFAULT_KNOBS`), `catalog` (merged building metas + economy curves, rebuilt on every config change — never cache its arrays across one), `recipes` (built-in per-building input/output **amounts** overlaid on the 1-in/1-out CSV recipes), `economy` (instant build/upgrade + input-gated production), `population`, `happiness`, `civic` (per-capita needs), `market` (global + city-to-city offers + gifting), `bots`, `throttle` (click-rate cap), `shop` (Bucks monetization), `seedCities`, and `balanceHarness` (headless deterministic world sim).
+- **`src/components/`** — React UI in the v1 "tactical console" aesthetic: `Globe`, `ConfigPanel` (upload/download the game-data CSVs, reset the world), `BuildPanel`, `CityPanel`, `MarketPanel`, `TradePanel`, `ShopPanel`, `Leaderboard`, `ClickButton` (the GROW dial + throttle meter), `Tutorial`/`Onboarding`, `ToastSystem`, `PwaPrompts`, `ErrorBoundary`.
 - **`src/hooks/`** — `useGameClient` (wires the client into React state), `usePwaUpdate` (service-worker update prompt).
 
 ## The core loop
 
 The game is **click-driven** (one click = one tick; only bots run on a background timer — see [`docs/CORE_LOOP.md`](docs/CORE_LOOP.md)). A click → activity units (`clickEffectiveness(happiness)` × any drink multiplier) → fed to the **active building**'s **production** (batches consume inputs **from the city's own stock** and yield outputs — a missing input **stalls** production, no auto-buy, until you produce/buy/trade for it) → and eats **1 food**. **Building and upgrading are instant cash purchases** (no click-build): buying/upgrading a **workplace** immediately raises **population** (= Σ building worker amounts; monotonic — never decreases); residential blocks add **housing**. Happiness = **50% housing** (are workers housed?) + **50% food** (food units vs population?) and scales click effectiveness, so a starving or homeless city builds slowly. Sell surplus to the game-run global market or list it for other cities; bots do the same. Tech tiers unlock by population (`tierUnlockPopulation()`: 1k/5k/20k/50k). The deeper happiness sections (energy/employment/fun/luxuries) are parked behind `DEEP_HAPPINESS` in `happiness.ts` until the tech tree is balanced.
+
+## Live game data (no rebuild, no backend)
+
+The four config files — the tech tree CSV, a recipe-amounts CSV, a tuning CSV (`key,value`) and the country-resources CSV — are read at runtime by `game/config.ts`. The **⚙ Config** panel downloads what the game is running on, takes an upload or a paste, applies it immediately, and remembers it in `localStorage` (`gc.config.v1`) until reverted; `docs/*.csv` and the built-in defaults in `recipes.ts`/`tuning.ts` are what ships.
+
+Applying any file **restarts the world** (`GameClient.resetGame()` → wipes `gc.save.v1`, reseeds every city, emits `world_reset`) because building ids, prices and worker counts all move. "Reset game data" is the same path with the config untouched. A tech tree with nothing readable is rejected and the running config is kept; softer problems (unreadable cells, ingredients nothing produces, unknown tuning keys, recipe rows for missing buildings) surface as warnings in the panel.
 
 ## Monetization (design §8)
 
@@ -155,7 +164,7 @@ A hard-currency ("Bucks") shop in `game/shop.ts` + `components/ShopPanel.tsx`: e
 
 ## Tuning knobs
 
-`game/catalog.ts` (`workersForTier` population-per-level, `buildCost`/`upgradeCost`/`workPerBatch`/`tierUnlockPopulation` curves), `game/recipes.ts` (per-building input/output amounts — the supply-chain weights that gate production), `game/civic.ts` (`FOOD_UNIT_VALUE`, `RESIDENTIAL` cost/capacity), `game/happiness.ts` (`FOOD_PER_CLICK`, `DEEP_HAPPINESS` flag), `game/throttle.ts` (click cap), `game/shop.ts` (Bucks prices, durations, `STARTING_BUCKS`), `scripts/gen-catalog.mjs` (resource pricing). Watch `npm run balance` for sane bands after changes.
+Most numbers now live in the tuning CSV (`game/tuning.ts` → `DEFAULT_KNOBS`, editable live in the Config panel): workers per tier, `buildCost`/`upgradeCost`/`workPerBatch` curves, tier-unlock populations, resource price base/growth + market spread, residential cost/capacity, food per click and per-good food values, and the click cap. Still code-side: `game/recipes.ts` (built-in per-building amounts — the supply-chain weights that gate production), `game/happiness.ts` (`DEEP_HAPPINESS` flag), `game/civic.ts` (energy/fun/luxury good lists, country aliases), `game/catalogBuild.ts` (resource name `ALIASES`), `game/shop.ts` (Bucks prices, durations, `STARTING_BUCKS`). Watch `npm run balance` for sane bands after changes.
 
 ## Deployment
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { City } from '../types'
 import { resourceInfo, getBuilding } from '../game/catalog'
-import { FOOD_GOODS, ENERGY_GOODS } from '../game/civic'
+import { foodGoods, ENERGY_GOODS } from '../game/civic'
 
 interface Props {
   city: City
@@ -71,7 +71,7 @@ function neededInputs(city: City): string[] {
   }
   // Food/energy when running low — so a starving city has a recovery path.
   const pop = Math.max(1, city.population)
-  const foodStock = FOOD_GOODS.reduce((a, g) => a + (city.inventory[g] || 0), 0)
+  const foodStock = foodGoods().reduce((a, g) => a + (city.inventory[g] || 0), 0)
   if (foodStock < pop * 0.05) wants.add('Grain')
   const energyStock = ENERGY_GOODS.reduce((a, g) => a + (city.inventory[g] || 0), 0)
   if (pop >= 1000 && energyStock < pop * 0.04) wants.add('Grid Energy')

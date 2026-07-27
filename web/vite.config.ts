@@ -49,6 +49,9 @@ export default defineConfig({
   ],
   server: {
     port: 5174,
+    // The design CSVs in ../docs are imported as text (game/config.ts) — they're
+    // the game's config, loaded at runtime so they can be swapped live.
+    fs: { allow: ['..'] },
     // No backend in this UI-first build — the app runs on the in-browser
     // MockGameClient. When a Go backend lands, restore an /api + /ws proxy here.
   },

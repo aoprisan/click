@@ -3,6 +3,7 @@ import { game } from '../client'
 import type { ConnectionState } from '../client'
 import type {
   City, Operator, TradeEvent, ProductionEvent, BuildingBuiltEvent, ThrottleState, NoticeEvent,
+  WorldResetEvent,
 } from '../types'
 
 export type { ConnectionState }
@@ -15,6 +16,8 @@ export interface GameClientHandlers {
   onBuildingBuilt?: (b: BuildingBuiltEvent) => void
   onThrottle?: (t: ThrottleState) => void
   onNotice?: (n: NoticeEvent) => void
+  /** the world was reseeded — every cached city/operator is stale. */
+  onWorldReset?: (r: WorldResetEvent) => void
 }
 
 /** Subscribes to the shared GameClient event stream and routes each event to
@@ -35,6 +38,7 @@ export function useGameClient(handlers: GameClientHandlers) {
         case 'building_built': h.onBuildingBuilt?.(e.data); break
         case 'throttle': h.onThrottle?.(e.data); break
         case 'notice': h.onNotice?.(e.data); break
+        case 'world_reset': h.onWorldReset?.(e.data); break
       }
     })
     setConnectionState(game.connectionState())

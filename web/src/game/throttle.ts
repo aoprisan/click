@@ -1,15 +1,16 @@
 // Soft click throttle with a visible meter (design §8): free play is capped at
 // a max rate, shown as a refilling bucket so the cap "feels like a rule, not a
-// bug". The cap is data-driven — tune CAPACITY / REFILL_PER_SEC from play.
-export const CAPACITY = 100          // burst tokens
-export const REFILL_PER_SEC = 100 / 6 // ~one full bucket per 6s of steady play
+// bug". The cap is data-driven — tune click.capacity / click.refill_per_sec in
+// the tuning CSV. A meter reads the knobs when it's constructed, so a config
+// swap takes effect on the next world reset (which is when the client rebuilds it).
+import { knobs } from './config'
 
 export class RateMeter {
   private tokens: number
   private last: number
   constructor(
-    private capacity = CAPACITY,
-    private refillPerSec = REFILL_PER_SEC,
+    private capacity = knobs().clickCapacity,
+    private refillPerSec = knobs().clickRefillPerSec,
     private clock: () => number = () => performance.now(),
   ) {
     this.tokens = capacity
