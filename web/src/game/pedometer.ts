@@ -56,3 +56,42 @@ export class StepDetector {
     return false
   }
 }
+
+// --- activity classification -------------------------------------------------
+// Fitness trackers distinguish walking from jogging; so does Walk Mode — from
+// ONE toggle, by cadence, no separate button per activity. The label is purely
+// informative plus flavor: a jogger mines more only because they take more
+// steps (still throttle-capped). Activity NEVER grants a click multiplier —
+// multipliers stay monetized (energy drinks, design §8).
+
+export type Activity = 'idle' | 'walking' | 'jogging'
+
+/** Trailing cadence window, ms. ~6s balances responsiveness vs stability. */
+const CADENCE_WINDOW_MS = 6000
+/** No step for this long → idle (standing still with the toggle on). */
+const IDLE_AFTER_MS = 3000
+/** Jogging cadence floor, steps/min. Walking tops out ~120; jogging ~150+. */
+const JOGGING_SPM = 140
+
+export class ActivityMeter {
+  private stepTimes: number[] = []
+
+  recordStep(tMs: number): void {
+    this.stepTimes.push(tMs)
+    const cutoff = tMs - CADENCE_WINDOW_MS
+    while (this.stepTimes.length > 0 && this.stepTimes[0] < cutoff) this.stepTimes.shift()
+  }
+
+  /** Steps per minute over the trailing window. */
+  cadence(nowMs: number): number {
+    const cutoff = nowMs - CADENCE_WINDOW_MS
+    const recent = this.stepTimes.filter(t => t >= cutoff)
+    return (recent.length / CADENCE_WINDOW_MS) * 60_000
+  }
+
+  activity(nowMs: number): Activity {
+    const last = this.stepTimes[this.stepTimes.length - 1]
+    if (last == null || nowMs - last > IDLE_AFTER_MS) return 'idle'
+    return this.cadence(nowMs) >= JOGGING_SPM ? 'jogging' : 'walking'
+  }
+}

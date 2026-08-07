@@ -690,15 +690,22 @@ body::after {
 }
 
 .walk-toggle.on {
-  color: var(--green);
-  border-color: var(--green);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--green) 60%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--green) 25%, transparent);
+  --walk: var(--green);
+  color: var(--walk);
+  border-color: var(--walk);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--walk) 60%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--walk) 25%, transparent);
   animation: walkPulse 2s ease-in-out infinite;
 }
 
+/* jogging = hotter cadence, hotter glow (label only — never a multiplier). */
+.walk-toggle.on.jogging {
+  --walk: var(--orange);
+  animation-duration: 0.9s;
+}
+
 @keyframes walkPulse {
-  50% { box-shadow: 0 0 22px color-mix(in srgb, var(--green) 45%, transparent); }
+  50% { box-shadow: 0 0 22px color-mix(in srgb, var(--walk) 45%, transparent); }
 }
 
 .rate-warn {

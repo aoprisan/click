@@ -68,6 +68,11 @@ autoclicker it's comfort, not advantage. Each mined step buzzes the phone; the
 toggle shows a live step count. The toggle only renders on devices with motion
 sensors (`hooks/useWalkMode.ts`).
 
+Like a fitness tracker, the one toggle recognizes the **activity** from step
+cadence — 🚶 walking vs 🏃 jogging (`ActivityMeter`) — and labels itself
+accordingly. Jogging mines more only because you take more steps; activity
+never multiplies clicks — **multipliers stay monetized** (energy drinks, §8).
+
 ## Game data is live (the Config panel)
 
 There is no generated data file and no build step for the design data: the CSVs

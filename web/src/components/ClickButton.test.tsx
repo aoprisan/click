@@ -38,14 +38,25 @@ describe('ClickButton', () => {
   it('shows the walk toggle and forwards presses without stealing the click', () => {
     const onClick = vi.fn()
     const onToggle = vi.fn()
-    render(<ClickButton {...base} onClick={onClick} walk={{ active: false, steps: 0, onToggle }} />)
+    render(<ClickButton {...base} onClick={onClick} walk={{ active: false, steps: 0, activity: 'idle', onToggle }} />)
     fireEvent.click(screen.getByText(/MINE WHILE WALKING/))
     expect(onToggle).toHaveBeenCalledOnce()
     expect(onClick).not.toHaveBeenCalled()
   })
 
   it('shows the live step count while walk mining', () => {
-    render(<ClickButton {...base} onClick={vi.fn()} walk={{ active: true, steps: 42, onToggle: vi.fn() }} />)
+    render(<ClickButton {...base} onClick={vi.fn()} walk={{ active: true, steps: 42, activity: 'idle', onToggle: vi.fn() }} />)
     expect(screen.getByText(/WALK MINING · 42/)).toBeInTheDocument()
+  })
+
+  it('labels the detected activity — walking vs jogging', () => {
+    const { rerender } = render(
+      <ClickButton {...base} onClick={vi.fn()} walk={{ active: true, steps: 7, activity: 'walking', onToggle: vi.fn() }} />,
+    )
+    expect(screen.getByText(/WALKING · 7/)).toBeInTheDocument()
+    rerender(
+      <ClickButton {...base} onClick={vi.fn()} walk={{ active: true, steps: 8, activity: 'jogging', onToggle: vi.fn() }} />,
+    )
+    expect(screen.getByText(/JOGGING · 8/)).toBeInTheDocument()
   })
 })

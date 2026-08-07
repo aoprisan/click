@@ -288,7 +288,7 @@ export default function App() {
             autoclicking={autoclicking}
             expanded={hudHidden}
             walk={walkModeSupported()
-              ? { active: walkMode.status === 'active', steps: walkMode.steps, onToggle: handleWalkToggle }
+              ? { active: walkMode.status === 'active', steps: walkMode.steps, activity: walkMode.activity, onToggle: handleWalkToggle }
               : undefined}
           />
         </>

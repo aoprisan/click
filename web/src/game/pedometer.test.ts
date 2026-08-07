@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { StepDetector } from './pedometer'
+import { StepDetector, ActivityMeter } from './pedometer'
 
 const G = 9.81
 const HZ = 60
@@ -72,5 +72,41 @@ describe('StepDetector', () => {
       if (det.sample(1000 + i * (1000 / HZ), 0, 0, G + 3)) steps++
     }
     expect(steps).toBe(1)
+  })
+})
+
+/** Record steps at a steady cadence (steps/min) for `seconds`, return the meter. */
+function stride(spm: number, seconds: number): ActivityMeter {
+  const meter = new ActivityMeter()
+  const gap = 60_000 / spm
+  for (let t = 0; t <= seconds * 1000; t += gap) meter.recordStep(t)
+  return meter
+}
+
+describe('ActivityMeter', () => {
+  it('classifies a walking cadence as walking', () => {
+    const meter = stride(105, 20)
+    expect(meter.activity(20_000)).toBe('walking')
+  })
+
+  it('classifies a jogging cadence as jogging', () => {
+    const meter = stride(165, 20)
+    expect(meter.activity(20_000)).toBe('jogging')
+  })
+
+  it('reports cadence from the trailing window', () => {
+    const meter = stride(120, 20)
+    expect(meter.cadence(20_000)).toBeGreaterThan(105)
+    expect(meter.cadence(20_000)).toBeLessThan(135)
+  })
+
+  it('drops to idle when the steps stop', () => {
+    const meter = stride(165, 20)
+    expect(meter.activity(20_000)).toBe('jogging')
+    expect(meter.activity(24_000)).toBe('idle')
+  })
+
+  it('starts idle before any step', () => {
+    expect(new ActivityMeter().activity(0)).toBe('idle')
   })
 })
