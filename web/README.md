@@ -36,9 +36,10 @@ npm run build      # tsc + vite (PWA service worker)
   knobs, both as CSV), `catalog` (the merged building metas + economy curves),
   `recipes` (built-in per-building amounts), `economy` (construction +
   production), `population`, `happiness`, `market` (global + city-to-city),
-  `bots`, `throttle`.
+  `bots`, `throttle`, `pedometer` (step detection for Walk Mode).
 - **`src/components/`** — React UI in the v1 "tactical console" aesthetic: Globe,
-  Build, City, Market, Trade, Leaderboard, the GROW dial + throttle meter.
+  Build, City, Market, Trade, Leaderboard, the GROW dial + throttle meter, and
+  the Walk Mode toggle (on devices with motion sensors — see below).
 
 ## The loop
 
@@ -54,6 +55,18 @@ residential blocks add **housing**. Happiness = 50% housing (are workers housed?
 effectiveness — so a starving or homeless city builds slowly. Sell surplus to the
 game-run global market or list it for other cities; bots do the same. See
 [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md) for the full rules.
+
+## Walk Mode (mine while you walk)
+
+On phones the GROW dial gains a **🚶 MINE WHILE WALKING** toggle — an
+*alternative* input alongside tapping, never a replacement. Switching it on
+(iOS asks for motion permission at that moment) feeds the accelerometer into a
+step detector (`game/pedometer.ts`, orientation-free so a pocket works) and
+every detected step fires a normal click at the active building, through the
+**same throttle** as tapping — walking mines at human rates, like the
+autoclicker it's comfort, not advantage. Each mined step buzzes the phone; the
+toggle shows a live step count. The toggle only renders on devices with motion
+sensors (`hooks/useWalkMode.ts`).
 
 ## Game data is live (the Config panel)
 

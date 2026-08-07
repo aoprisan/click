@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { game } from './client'
 import { useGameClient } from './hooks/useGameClient'
 import { usePwaUpdate } from './hooks/usePwaUpdate'
+import { useWalkMode, walkModeSupported } from './hooks/useWalkMode'
+import { haptic } from './sound'
 import type { City, Operator } from './types'
 import { getBuilding, defaultWorkBuildingId } from './game/catalog'
 import { clickEffectiveness } from './game/happiness'
@@ -166,6 +168,21 @@ export default function App() {
     game.click(activeBuildingId)
   }, [activeBuildingId])
 
+  // Walk Mode: each detected step is an ordinary click on the active building —
+  // an alternative input alongside the GROW button (never replacing it), capped
+  // by the same throttle. A soft buzz confirms each mined step hands-free.
+  const walkStep = useCallback(() => {
+    haptic(8)
+    handleClick()
+  }, [handleClick])
+  const walkMode = useWalkMode(walkStep)
+  const handleWalkToggle = useCallback(() => {
+    void walkMode.toggle().then(status => {
+      if (status === 'denied') pushToast('WALK', 'Motion access denied — allow it in browser settings', 'warn')
+      else if (status === 'active') pushToast('WALK', 'Walk Mode on — steps now mine for you', 'good')
+    })
+  }, [walkMode.toggle, pushToast])
+
   const activeBuildingName = getBuilding(activeBuildingId)?.name ?? activeBuildingId
   const multiplier = operator?.activeMultiplier && now < operator.activeMultiplier.expiresAt ? operator.activeMultiplier.factor : 1
   const autoclicking = !!(operator?.autoclickerUntil && now < operator.autoclickerUntil)
@@ -270,6 +287,9 @@ export default function App() {
             multiplier={multiplier}
             autoclicking={autoclicking}
             expanded={hudHidden}
+            walk={walkModeSupported()
+              ? { active: walkMode.status === 'active', steps: walkMode.steps, onToggle: handleWalkToggle }
+              : undefined}
           />
         </>
       )}
