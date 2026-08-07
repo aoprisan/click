@@ -673,6 +673,41 @@ body::after {
   text-shadow: 0 0 10px color-mix(in srgb, var(--dial) 50%, transparent);
 }
 
+/* Walk Mode toggle: the alternative, hands-free input under the GROW dial. */
+.walk-toggle {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid color-mix(in srgb, var(--dim) 45%, transparent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.walk-toggle.on {
+  --walk: var(--green);
+  color: var(--walk);
+  border-color: var(--walk);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--walk) 60%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--walk) 25%, transparent);
+  animation: walkPulse 2s ease-in-out infinite;
+}
+
+/* jogging = hotter cadence, hotter glow (label only — never a multiplier). */
+.walk-toggle.on.jogging {
+  --walk: var(--orange);
+  animation-duration: 0.9s;
+}
+
+@keyframes walkPulse {
+  50% { box-shadow: 0 0 22px color-mix(in srgb, var(--walk) 45%, transparent); }
+}
+
 .rate-warn {
   font-size: 11px;
   color: var(--red);

@@ -1,0 +1,55 @@
+name: Build Android APK
+
+# Builds the v2 client (web/) and packages it as the Capacitor Android app,
+# uploading an installable debug APK as a run artifact — no local Android
+# Studio/SDK needed. Grab it from the run's "Artifacts" section, copy it to an
+# Android phone and install (the phone will ask to allow installs from unknown
+# sources). Debug-signed: for testing, not for the Play Store.
+on:
+  push:
+    paths:
+      - 'web/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # The Android app serves the bundle from the app root, not /click/ —
+      # default VITE_BASE (/) is correct here, unlike the Pages deploy.
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug
+        working-directory: web/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: global-conflict-debug-apk
+          path: web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

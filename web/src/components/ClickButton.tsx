@@ -18,9 +18,20 @@ interface ClickButtonProps {
   autoclicking: boolean
   /** HUD panels are hidden — grow the button to fill the freed space. */
   expanded?: boolean
+  /** Walk Mode (mine-while-you-walk) — omitted on devices without motion
+   *  sensors. An alternative input alongside the button, never a replacement.
+   *  `activity` is auto-classified from step cadence (one toggle, no button
+   *  per activity); it labels the grind but never multiplies it. */
+  walk?: { active: boolean; steps: number; activity: 'idle' | 'walking' | 'jogging'; onToggle: () => void }
 }
 
-export default function ClickButton({ onClick, totalUnits, activeBuildingName, unitsPerClick, meter, blocked, multiplier, autoclicking, expanded }: ClickButtonProps) {
+const WALK_LABELS = {
+  idle: '🚶 WALK MINING',
+  walking: '🚶 WALKING',
+  jogging: '🏃 JOGGING',
+} as const
+
+export default function ClickButton({ onClick, totalUnits, activeBuildingName, unitsPerClick, meter, blocked, multiplier, autoclicking, expanded, walk }: ClickButtonProps) {
   const [pressing, setPressing] = useState(false)
   const [ripples, setRipples] = useState<number[]>([])
   const [particles, setParticles] = useState<Particle[]>([])
@@ -71,6 +82,16 @@ export default function ClickButton({ onClick, totalUnits, activeBuildingName, u
       </div>
 
       <span className="launch-count">{Math.round(totalUnits).toLocaleString()} u</span>
+      {walk && (
+        <button
+          className={`walk-toggle${walk.active ? ` on ${walk.activity}` : ''}`}
+          onClick={walk.onToggle}
+          aria-pressed={walk.active}
+          title="Turn your steps into clicks — same rate cap as tapping"
+        >
+          {walk.active ? `${WALK_LABELS[walk.activity]} · ${walk.steps}` : '🚶 MINE WHILE WALKING'}
+        </button>
+      )}
       {blocked && <span className="rate-warn">Throttled — easing off</span>}
     </div>
   )

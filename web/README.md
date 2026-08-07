@@ -36,9 +36,10 @@ npm run build      # tsc + vite (PWA service worker)
   knobs, both as CSV), `catalog` (the merged building metas + economy curves),
   `recipes` (built-in per-building amounts), `economy` (construction +
   production), `population`, `happiness`, `market` (global + city-to-city),
-  `bots`, `throttle`.
+  `bots`, `throttle`, `pedometer` (step detection for Walk Mode).
 - **`src/components/`** — React UI in the v1 "tactical console" aesthetic: Globe,
-  Build, City, Market, Trade, Leaderboard, the GROW dial + throttle meter.
+  Build, City, Market, Trade, Leaderboard, the GROW dial + throttle meter, and
+  the Walk Mode toggle (on devices with motion sensors — see below).
 
 ## The loop
 
@@ -54,6 +55,60 @@ residential blocks add **housing**. Happiness = 50% housing (are workers housed?
 effectiveness — so a starving or homeless city builds slowly. Sell surplus to the
 game-run global market or list it for other cities; bots do the same. See
 [`../docs/CORE_LOOP.md`](../docs/CORE_LOOP.md) for the full rules.
+
+## Walk Mode (mine while you walk)
+
+On phones the GROW dial gains a **🚶 MINE WHILE WALKING** toggle — an
+*alternative* input alongside tapping, never a replacement. Switching it on
+(iOS asks for motion permission at that moment) feeds the accelerometer into a
+step detector (`game/pedometer.ts`, orientation-free so a pocket works) and
+every detected step fires a normal click at the active building, through the
+**same throttle** as tapping — walking mines at human rates, like the
+autoclicker it's comfort, not advantage. Each mined step buzzes the phone; the
+toggle shows a live step count. The toggle only renders on devices with motion
+sensors (`hooks/useWalkMode.ts`).
+
+Like a fitness tracker, the one toggle recognizes the **activity** from step
+cadence — 🚶 walking vs 🏃 jogging (`ActivityMeter`) — and labels itself
+accordingly. Jogging mines more only because you take more steps; activity
+never multiplies clicks — **multipliers stay monetized** (energy drinks, §8).
+
+Steps come through the `src/steps/` seam: on the web, DeviceMotion (foreground
+only — browsers stop motion events when the screen locks); in the native app
+below, the OS pedometer, which keeps counting in the background.
+
+## Mobile app (Capacitor) — steps count while the app is closed
+
+The same Vite build is wrapped as a native Android/iOS app with
+[Capacitor](https://capacitorjs.com) (`capacitor.config.ts` + `android/` +
+`ios/`). The wrapper exists for the one thing the web cannot do: **background
+steps**. Both OSes count steps continuously in low-power hardware, so an
+app-local `Pedometer` plugin
+(`android/…/PedometerPlugin.java`, `ios/App/App/PedometerPlugin.swift`) serves
+Walk Mode two ways:
+
+- **Live steps** — hardware step-detector events while the app is open
+  (replacing the accelerometer heuristic on native).
+- **Banked steps** — `claimBanked()` returns the steps the OS counted since the
+  last claim, *including while the app was closed* (Android: cumulative
+  `TYPE_STEP_COUNTER` diff; iOS: `CMPedometer` history query, up to 7 days).
+  Claimed on toggle-on and on every return to the foreground, then **drip-fed
+  through the normal click throttle at walking pace** (~4/s, capped at
+  `BANK_MAX = 12 000` per claim in `hooks/useWalkMode.ts`) — a 10k-step day is
+  queued work, not an instant windfall. Both knobs are design decisions, tune
+  them there.
+
+Workflow (needs Android Studio / Xcode; the native projects are committed):
+
+```bash
+npm run app:sync      # build web + copy into android/ + ios/
+npm run app:android   # …then open in Android Studio (build/run from there)
+npm run app:ios       # …then open in Xcode (build/run from there; macOS only)
+```
+
+Permissions: Android asks for Activity Recognition (Android 10+); iOS asks for
+Motion & Fitness (`NSMotionUsageDescription` in `Info.plist`). The web PWA and
+GitHub Pages deploy are untouched — the wrapper is additive.
 
 ## Game data is live (the Config panel)
 
