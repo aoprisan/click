@@ -177,8 +177,9 @@ export default function App() {
   }, [handleClick])
   const walkMode = useWalkMode(walkStep)
   const handleWalkToggle = useCallback(() => {
-    void walkMode.toggle().then(status => {
-      if (status === 'denied') pushToast('WALK', 'Motion access denied — allow it in browser settings', 'warn')
+    void walkMode.toggle().then(({ status, banked }) => {
+      if (status === 'denied') pushToast('WALK', 'Motion access denied — allow it in settings', 'warn')
+      else if (banked > 0) pushToast('WALK', `${banked.toLocaleString()} steps banked while away — mining them`, 'good')
       else if (status === 'active') pushToast('WALK', 'Walk Mode on — steps now mine for you', 'good')
     })
   }, [walkMode.toggle, pushToast])

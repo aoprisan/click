@@ -73,6 +73,43 @@ cadence — 🚶 walking vs 🏃 jogging (`ActivityMeter`) — and labels itself
 accordingly. Jogging mines more only because you take more steps; activity
 never multiplies clicks — **multipliers stay monetized** (energy drinks, §8).
 
+Steps come through the `src/steps/` seam: on the web, DeviceMotion (foreground
+only — browsers stop motion events when the screen locks); in the native app
+below, the OS pedometer, which keeps counting in the background.
+
+## Mobile app (Capacitor) — steps count while the app is closed
+
+The same Vite build is wrapped as a native Android/iOS app with
+[Capacitor](https://capacitorjs.com) (`capacitor.config.ts` + `android/` +
+`ios/`). The wrapper exists for the one thing the web cannot do: **background
+steps**. Both OSes count steps continuously in low-power hardware, so an
+app-local `Pedometer` plugin
+(`android/…/PedometerPlugin.java`, `ios/App/App/PedometerPlugin.swift`) serves
+Walk Mode two ways:
+
+- **Live steps** — hardware step-detector events while the app is open
+  (replacing the accelerometer heuristic on native).
+- **Banked steps** — `claimBanked()` returns the steps the OS counted since the
+  last claim, *including while the app was closed* (Android: cumulative
+  `TYPE_STEP_COUNTER` diff; iOS: `CMPedometer` history query, up to 7 days).
+  Claimed on toggle-on and on every return to the foreground, then **drip-fed
+  through the normal click throttle at walking pace** (~4/s, capped at
+  `BANK_MAX = 12 000` per claim in `hooks/useWalkMode.ts`) — a 10k-step day is
+  queued work, not an instant windfall. Both knobs are design decisions, tune
+  them there.
+
+Workflow (needs Android Studio / Xcode; the native projects are committed):
+
+```bash
+npm run app:sync      # build web + copy into android/ + ios/
+npm run app:android   # …then open in Android Studio (build/run from there)
+npm run app:ios       # …then open in Xcode (build/run from there; macOS only)
+```
+
+Permissions: Android asks for Activity Recognition (Android 10+); iOS asks for
+Motion & Fitness (`NSMotionUsageDescription` in `Info.plist`). The web PWA and
+GitHub Pages deploy are untouched — the wrapper is additive.
+
 ## Game data is live (the Config panel)
 
 There is no generated data file and no build step for the design data: the CSVs
