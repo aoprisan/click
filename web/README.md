@@ -106,6 +106,26 @@ npm run app:android   # …then open in Android Studio (build/run from there)
 npm run app:ios       # …then open in Xcode (build/run from there; macOS only)
 ```
 
+### iOS from the command line (local only)
+
+The IDE round-trip is optional on iOS: [`scripts/`](scripts/README.md) drives
+Xcode from the terminal, so a simulator run is one command.
+
+```bash
+npm run ios:doctor    # is this Mac ready? (Xcode, simulators, signing)
+npm run ios:run       # build web + sync + compile + boot a simulator + launch
+npm run ios:build     # compile only  (-- --release / --device / --skip-web)
+npm run ios:archive   # .xcarchive → signed .ipa  (-- --method ad-hoc --team ID)
+npm run ios:clean     # delete generated build output
+```
+
+These are **local only by design** — iOS builds need macOS, Xcode and a signing
+identity, so they are deliberately *not* wired into GitHub Actions. CI still
+builds only the web bundle (Pages) and the Android debug APK. Simulator builds
+are unsigned and need no Apple account; device builds and archives take
+`--team` (or `IOS_TEAM_ID`). `CMPedometer` gives no data on the simulator, so
+banked steps have to be tested on a real device.
+
 Permissions: Android asks for Activity Recognition (Android 10+); iOS asks for
 Motion & Fitness (`NSMotionUsageDescription` in `Info.plist`). The web PWA and
 GitHub Pages deploy are untouched — the wrapper is additive.

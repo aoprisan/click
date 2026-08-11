@@ -5,6 +5,10 @@ App/App/public
 DerivedData
 xcuserdata
 
+# Output of the local build scripts (web/scripts/ios-*.sh): DerivedData,
+# .xcarchives, exported .ipa and the generated ExportOptions plists.
+build/
+
 # Cordova plugins for Capacitor
 capacitor-cordova-ios-plugins
 

@@ -129,6 +129,11 @@ npm test            # vitest — pure game-logic suites
 npm run balance     # headless balance harness — band report + sane-band asserts
 npm run build       # tsc -b + vite build (emits PWA service worker)
 npm run preview     # serve the production build locally
+
+# native app (macOS + Xcode; local only, never in CI — see web/scripts/README.md)
+npm run ios:doctor  # environment check: Xcode, simulators, signing
+npm run ios:run     # build + sync + compile + boot a simulator + launch
+npm run ios:archive # .xcarchive → signed .ipa (-- --method ad-hoc --team ID)
 ```
 
 There is no catalog-generation step: `docs/*.csv` are bundled as text and parsed
@@ -149,6 +154,7 @@ Three layers, designed so the in-browser mock can later be swapped for a server 
 - **`src/hooks/`** — `useGameClient` (wires the client into React state), `usePwaUpdate` (service-worker update prompt), `useWalkMode` (Walk Mode: steps → clicks; an alternative input alongside the GROW button, throttled identically; claims + drip-feeds steps banked while the app was away).
 - **`src/steps/`** — the step-source seam for Walk Mode: `DeviceMotionStepSource` (web: accelerometer → `game/pedometer` detection, foreground only) vs `NativePedometerStepSource` (Capacitor app: OS step counter, keeps counting in background). `selectStepSource()` picks by platform.
 - **Capacitor wrapper** (`web/capacitor.config.ts`, `web/android/`, `web/ios/`) — the same build bundled as a native app so steps bank while the app is closed, via the app-local `Pedometer` plugin (Java + Swift). `npm run app:sync` rebuilds + syncs; open with `app:android`/`app:ios`. The web PWA deploy is unaffected.
+- **`web/scripts/`** — local iOS build scripts (`ios:doctor`/`ios:build`/`ios:run`/`ios:archive`/`ios:clean`) that drive `xcodebuild`/`simctl` from the terminal instead of Xcode, plus the committed shared `App` scheme they need. **Local only** — iOS needs macOS + Xcode + signing, so it is deliberately not in GitHub Actions; CI packaging stays web-bundle (Pages) and Android APK. See `web/scripts/README.md`.
 
 ## The core loop
 

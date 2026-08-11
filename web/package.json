@@ -11,7 +11,12 @@
     "balance": "vitest run src/game/balanceHarness.test.ts --reporter=verbose",
     "app:sync": "npm run build && cap sync",
     "app:android": "npm run app:sync && cap open android",
-    "app:ios": "npm run app:sync && cap open ios"
+    "app:ios": "npm run app:sync && cap open ios",
+    "ios:doctor": "bash scripts/ios-doctor.sh",
+    "ios:build": "bash scripts/ios-build.sh",
+    "ios:run": "bash scripts/ios-run.sh",
+    "ios:archive": "bash scripts/ios-archive.sh",
+    "ios:clean": "bash scripts/ios-clean.sh"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
